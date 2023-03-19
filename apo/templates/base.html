@@ -9,7 +9,7 @@
     <meta name="robots" content="index,follow">
     <meta name="theme-color" content="#ffffff">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="keywords" content="Alpha Phi Omega APO Epsilon Zeta EZ Rennselaer Polytechnic Institute RPI Fraternity Profession Sorority Community Service Leadership Friendship FSC">
+    <meta name="keywords" content="Alpha Phi Omega APO Epsilon Zeta EZ Rennselaer Polytechnic Institute RPI Fraternity Professional Sorority Community Service Leadership Friendship FSC Greek Life Fellowship Oranization Club Troy New York NY Capital Region Community">
     <meta name="description" content="Website for the Alpha Phi Omega, Epsilon Zeta Chapter at RPI">
     <meta name="msapplication-TileColor" content="#da532c">
     <link rel="author" href="https://rafaelcenzano.com">
@@ -62,7 +62,6 @@
     {% endblock %}
 
     <!-- CSS -->
-    <link href="https://fonts.googleapis.com/css?family=Ubuntu&display=swap" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/base.css') }}">
     {% block head_css %}
     {% endblock %}
@@ -74,13 +73,10 @@
 </head>
 <body>
     {% include "navbar.html" %}
-    <div id="content">
-        {% include "flash.html" %}
-        {% block content %}
-        {% endblock %}
-    </div>
+    {% include "flash.html" %}
+    {% block content %}
+    {% endblock %}
     {% include "footer.html" %}
-    <script type="text/javascript" src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/base.js') }}"></script>
     {% block trailing_js %}
     {% endblock %}
