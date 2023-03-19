@@ -1,6 +1,6 @@
 # apoez.org
 
-Flask website + postgresql app for JYL (Japanatown Youth Leaders)
+Simple chapter website to display chapter information and run the campus lost and found system.
 
 ## Setup
 
@@ -8,7 +8,7 @@ Clone the repository and enter it
 
 ```
 git clone https://github.com/alpha-phi-omega-ez/apoez.org-flask.git
-cd jyl-site
+cd apoez.org-flask
 ```
 
 ### Requirements
