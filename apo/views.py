@@ -29,11 +29,11 @@ def robots():
     return send_file('templates/seo/robots.txt')
 
 
-@app.route('/favicon.ico', methods=['GET'])
-def favicon():
+# @app.route('/favicon.ico', methods=['GET'])
+# def favicon():
 
-    # Return static favicon.ico
-    return send_file('static/img/apo.ico')
+#     # Return static favicon.ico
+#     return send_file('static/img/apo.ico')
 
 
 @app.route('/sitemap.xml', methods=['GET'])
