@@ -4,7 +4,7 @@ from apo import db
 
 
 class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True, unique=True)
+    id = db.Column(db.String(50), primary_key=True, unique=True)
     name = db.Column(db.String(50), nullable=False, unique=False)
     email = db.Column(db.String(50), nullable=False, unique=True)
 
