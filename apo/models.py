@@ -34,7 +34,7 @@ class Backtest(db.Model):
     midterm = db.Column(db.Boolean, unique=False, default=False)
     year = db.Column(db.Integer, nullable=False, unique=False)
     semester = db.Column(db.Integer, nullable=False, unique=False) # 1 = Spring, 2 = Summer, 3 = Fall
-    backtest_number = db.Column(db.Integer, nullable=False, unique=False)
+    backtest_count = db.Column(db.Integer, nullable=False, unique=False)
 
 
 # Backtest Table
