@@ -9,9 +9,14 @@ from flask import (
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
-from apo import app, db, login_manager, oauth#oauth_client
+from apo import app, db, login_manager, oauth  # oauth_client
 from apo.forms import LostReportForm
-from apo.models import User, BacktestClasses, Backtest, Chargers#, LostReport, LostItem
+from apo.models import (
+    User,
+    BacktestClasses,
+    Backtest,
+    Chargers,
+)  # , LostReport, LostItem
 import requests
 
 
@@ -168,30 +173,6 @@ def backtests():
 
 
 """
-API
-"""
-
-@app.route("/api/v1/chargers")
-def list_chargers():
-    chargers = Chargers.query.all()
-    # charger_data = [{charger.id:{"desc":charger.description}} for charger in chargers]
-    charger_dict = {}
-    for charger in chargers:
-        charger_dict[charger.id] = {"desc":charger.description,"in_office":charger.in_office}
-    return make_response(charger_dict), 200
-
-
-#@login_required
-@app.route("/api/v1/chargers/admin")
-def list_chargers_admin():
-    chargers = Chargers.query.all()
-    charger_dict = {}
-    # TODO: strftime for checkedout
-    for charger in chargers:
-        charger_dict[charger.id] = {"desc":charger.description,"in_office":charger.in_office,"checked_out":charger.checked_out,"phone_number":f"({charger.phone_area_code}){charger.phone_middle}-{charger.phone_end}"}
-    return make_response(charger_dict), 200
-
-"""
 SEO
 """
 
@@ -216,6 +197,7 @@ def sitemap():
     response = make_response(sitemap_xml)
     response.headers["Content-Type"] = "application/xml"
     return response
+
 
 """
 Error Handlers

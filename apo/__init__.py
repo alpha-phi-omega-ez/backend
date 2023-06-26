@@ -29,10 +29,11 @@ login_manager.session_protection = "strong"
 # oauth_client = WebApplicationClient(app.config["GOOGLE_CLIENT_ID"])
 oauth = OAuth(app)
 
-# importing all the models and initializing them
+# importing all the models
 from apo.models import *
-#db.create_all()
-
 
 # Import all views
 import apo.views
+
+# Import all api endpoints
+import apo.api
