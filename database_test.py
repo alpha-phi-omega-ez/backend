@@ -1,6 +1,6 @@
 import sys
 import random
-from datetime import datetime
+from datetime import datetime, date
 
 from apo import app, db
 from apo.models import *
@@ -60,7 +60,7 @@ elif sys.argv[1] == 'create':
                     
                 bt = Backtest(
                     subject_code = bt_class[0],
-                    added = datetime.now(),
+                    added = date.now(),
                     course_number = bt_class[1],
                     name_of_class = bt_class[2],
                     exam = exam,
@@ -70,7 +70,6 @@ elif sys.argv[1] == 'create':
                     semester = random.choice([1, 2, 3]),
                     backtest_number = random.choice([1, 2, 3, 4, 5, 6]),
                     backtest_count = random.choice([1, 2, 3]),
-                    last_modified=datetime.now(),
                 )
 
                 if bt not in duplicates:
@@ -94,7 +93,7 @@ elif sys.argv[1] == 'create':
                     
                 bt = Backtest(
                     subject_code = bt_class[0],
-                    added = datetime.now(),
+                    added = date.now(),
                     course_number = bt_class[1],
                     name_of_class = bt_class[2],
                     exam = exam,
@@ -104,7 +103,6 @@ elif sys.argv[1] == 'create':
                     semester = random.choice([1, 2, 3]),
                     backtest_number = random.choice([1, 2, 3, 4, 5, 6]),
                     backtest_count = random.choice([1, 2, 3]),
-                    last_modified=datetime.now(),
                 )
 
                 if bt not in duplicates:
@@ -118,8 +116,6 @@ elif sys.argv[1] == 'create':
         for charger in chargers:
             print(f"Added {charger}")
             new_charger = Chargers(
-                added=datetime.now(),
-                last_modified=datetime.now(),
                 in_office=True,
                 checked_out=datetime.now(),
                 description=charger,
