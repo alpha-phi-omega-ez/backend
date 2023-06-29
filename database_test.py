@@ -1,6 +1,6 @@
 import sys
 import random
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 from apo import app, db
 from apo.models import *
@@ -60,7 +60,7 @@ elif sys.argv[1] == 'create':
                     
                 bt = Backtest(
                     subject_code = bt_class[0],
-                    added = date.now(),
+                    added = date.today(),
                     course_number = bt_class[1],
                     name_of_class = bt_class[2],
                     exam = exam,
@@ -93,7 +93,7 @@ elif sys.argv[1] == 'create':
                     
                 bt = Backtest(
                     subject_code = bt_class[0],
-                    added = date.now(),
+                    added = date.today(),
                     course_number = bt_class[1],
                     name_of_class = bt_class[2],
                     exam = exam,
@@ -117,7 +117,7 @@ elif sys.argv[1] == 'create':
             print(f"Added {charger}")
             new_charger = Chargers(
                 in_office=True,
-                checked_out=datetime.now(),
+                checked_out=datetime.now(timezone.utc),
                 description=charger,
                 phone_area_code=None,
                 phone_middle=None,
