@@ -24,8 +24,7 @@ class BacktestClasses(db.Model):
 # Spring semester denoted a for proper sorting
 class Backtest(db.Model):
     id = db.Column(db.Integer, primary_key=True, unique=True)
-    added = db.Column(db.DateTime, nullable=False, unique=False)
-    last_modified = db.Column(db.DateTime, nullable=False, unique=False)
+    added = db.Column(db.Date, nullable=False, unique=False)
     subject_code = db.Column(db.String(4), nullable=False, unique=False)
     course_number = db.Column(db.Integer, nullable=False, unique=False)
     name_of_class = db.Column(db.String(150), nullable=False, unique=False)
@@ -42,8 +41,6 @@ class Backtest(db.Model):
 # Spring semester denoted a for proper sorting
 class Chargers(db.Model):
     id = db.Column(db.Integer, primary_key=True, unique=True)
-    added = db.Column(db.DateTime, nullable=False, unique=False)
-    last_modified = db.Column(db.DateTime, nullable=False, unique=False)
     in_office = db.Column(db.Boolean, nullable=False, unique=False)
     checked_out = db.Column(db.DateTime, nullable=False, unique=False)
     description = db.Column(db.Text, nullable=False, unique=False)
