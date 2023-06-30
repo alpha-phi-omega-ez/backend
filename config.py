@@ -10,9 +10,12 @@ class Config():
         "https://accounts.google.com/.well-known/openid-configuration"
     )
 
-    SECRET_KEY = os.urandom(32)
-    # SQLALCHEMY_TRACK_MODIFICATIONS = False
-    # SQLALCHEMY_COMMIT_ON_TEARDOWN = True
+    SECRET_KEY = os.environ.get("SECRET_KEY", os.urandom(32))
+
+    TESTING = False
+    DEBUG = False
+
+    PREFERRED_URL_SCHEME = "https"
 
 class TestingConfig(Config):
     TESTING = True
@@ -24,6 +27,4 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     #SQLALCHEMY_DATABASE_URI = ""
-
-    TESTING = False
-    DEBUG = False
+    SERVER_NAME = "apoez.org"
