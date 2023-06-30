@@ -1,4 +1,4 @@
-from apo import db
+from apo import app, db
 from apo.models import Chargers
 
 from datetime import datetime, timezone
@@ -13,6 +13,10 @@ fmt = "%y-%m-%d %H:%M:%S"
 def list_chargers(admin=False):
     chargers = Chargers.query.all()
     charger_dict = {}
+    if chargers is None:
+        app.logger.error("Failed to query and find chargers")
+        return charger_dict
+
     for charger in chargers:
         if admin:
             charger_dict[charger.id] = {
@@ -26,6 +30,7 @@ def list_chargers(admin=False):
                 "desc": charger.description,
                 "in_office": charger.in_office,
             }
+    app.logger.debug(f"charger list data created {charger_dict}")
     return charger_dict
 
 
@@ -44,6 +49,8 @@ def edit_desc(request_data):
             )
         charger.description = request_data["desc"]
         db.session.commit()
+
+        app.logger.debug(f"charger {charger} description updated")
 
         return make_response(
             {"response": f"updated charger {charger.id} description"}, 200
@@ -78,6 +85,8 @@ def checkout(request_data):
         charger.phone_end = request_data["end"]
         db.session.commit()
 
+        app.logger.debug(f"charger {charger} checkedout")
+
         return make_response({"response": f"checked out charger {charger.id}"}, 200)
 
     return make_response({"response": "charger not found"}, 404)
@@ -97,6 +106,8 @@ def checkin(request_data):
             )
         charger.in_office = True
         db.session.commit()
+
+        app.logger.debug(f"charger {charger} checkedin")
 
         return make_response({"response": f"checked in charger {charger.id}"}, 200)
 
@@ -121,6 +132,8 @@ def create(request_data):
     db.session.add(new_charger)
     db.session.commit()
 
+    app.logger.debug(f"charger {new_charger} created")
+
     return make_response({"response": f"created charger {new_charger.id}"}, 200)
 
 
@@ -136,6 +149,8 @@ def delete(request_data):
     if charger:
         db.session.delete(charger)
         db.session.commit()
+
+        app.logger.debug(f"charger {charger} deleted")
 
         return make_response({"response": f"charger {charger.id} deleted"}, 200)
 

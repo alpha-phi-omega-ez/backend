@@ -5,7 +5,7 @@ clean:
 	pystarter clean
 
 run: clean
-	python run.py
+	gunicorn run:app
 
 stresstest: clean
 	gunicorn run:app -w 6 --preload --max-requests-jitter 300

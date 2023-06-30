@@ -27,40 +27,52 @@ API
 
 @app.route("/api/v1/chargers", methods=["GET"])
 def list_chargers_api():
+    app.logger.info(f"/api/v1/chargers called")
     return make_response(chargers.list_chargers(), 200)
 
 
 # @login_required
 @app.route("/api/v1/chargers/admin", methods=["GET"])
 def list_chargers_admin_api():
+    app.logger.info(f"/api/v1/chargers/admin called")
     return make_response(chargers.list_chargers(True), 200)
 
 
 # @login_required
 @app.route("/api/v1/chargers/admin/edit/desc", methods=["POST"])
 def update_charger_desc_api():
+    app.logger.info(f"/api/v1/chargers/admin/checkout called")
+    app.logger.debug(f"response data: {request.get_json()}")
     return chargers.edit_desc(request.get_json())
 
 
 # @login_required
 @app.route("/api/v1/chargers/admin/checkout", methods=["POST"])
 def checkout_charger_api():
+    app.logger.debug(f"/api/v1/chargers/admin/checkout")
+    app.logger.debug(f"response data: {request.get_json()}")
     return chargers.checkout(request.get_json())
 
 
 # @login_required
 @app.route("/api/v1/chargers/admin/checkin", methods=["POST"])
 def checkin_charger_api():
+    app.logger.debug(f"/api/v1/chargers/admin/checkin")
+    app.logger.debug(f"response data: {request.get_json()}")
     return chargers.checkin(request.get_json())
 
 
 # @login_required
 @app.route("/api/v1/chargers/admin/create", methods=["POST"])
 def create_charger_api():
+    app.logger.debug(f"/api/v1/chargers/admin/create")
+    app.logger.debug(f"response data: {request.get_json()}")
     return chargers.create(request.get_json())
 
 
 # @login_required
 @app.route("/api/v1/chargers/admin/delete", methods=["POST"])
 def delete_charger_api():
+    app.logger.debug(f"/api/v1/chargers/admin/delete")
+    app.logger.debug(f"response data: {request.get_json()}")
     return chargers.delete(request.get_json())
