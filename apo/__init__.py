@@ -5,8 +5,6 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
-from config import TestingConfig
-
 # from oauthlib.oauth2 import WebApplicationClient
 from authlib.integrations.flask_client import OAuth
 
