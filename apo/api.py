@@ -39,7 +39,7 @@ def list_chargers_admin_api():
 
 
 # @login_required
-@app.route("/api/v1/chargers/admin/edit/desc", methods=["POST"])
+@app.route("/api/v1/chargers/admin/edit/desc", methods=["PUT"])
 def update_charger_desc_api():
     app.logger.info(f"/api/v1/chargers/admin/checkout called")
     app.logger.debug(f"response data: {request.get_json()}")
@@ -47,7 +47,7 @@ def update_charger_desc_api():
 
 
 # @login_required
-@app.route("/api/v1/chargers/admin/checkout", methods=["POST"])
+@app.route("/api/v1/chargers/admin/checkout", methods=["PUT"])
 def checkout_charger_api():
     app.logger.debug(f"/api/v1/chargers/admin/checkout")
     app.logger.debug(f"response data: {request.get_json()}")
@@ -55,7 +55,7 @@ def checkout_charger_api():
 
 
 # @login_required
-@app.route("/api/v1/chargers/admin/checkin", methods=["POST"])
+@app.route("/api/v1/chargers/admin/checkin", methods=["PUT"])
 def checkin_charger_api():
     app.logger.debug(f"/api/v1/chargers/admin/checkin")
     app.logger.debug(f"response data: {request.get_json()}")
@@ -71,7 +71,7 @@ def create_charger_api():
 
 
 # @login_required
-@app.route("/api/v1/chargers/admin/delete", methods=["POST"])
+@app.route("/api/v1/chargers/admin/delete", methods=["DELETE"])
 def delete_charger_api():
     app.logger.debug(f"/api/v1/chargers/admin/delete")
     app.logger.debug(f"response data: {request.get_json()}")
