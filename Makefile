@@ -7,5 +7,8 @@ clean:
 run: clean
 	gunicorn run:app
 
-stresstest: clean
+develop: clean
+	python run.py
+
+prod: clean
 	gunicorn run:app -w 6 --preload --max-requests-jitter 300
