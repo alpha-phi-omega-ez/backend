@@ -43,6 +43,8 @@ def list_classes(request_data):
             "name": bt_class.BacktestClasses.name_of_class,
             "course_number": bt_class.BacktestClasses.course_number,
         }
+    
+    app.logger.debug(f"classes list data created {classes_dict}")
 
     return make_response(classes_dict, 200)
 
@@ -52,25 +54,30 @@ def backtests(request_data):
         return make_response(
             {"response": f"requires subject_code and course_number"}, 400
         )
+    
+    subject_code = request_data["subject_code"].upper()
+    course_number = request_data["course_number"]
 
     exams = db.session.execute(
         db.select(Backtest)
-        .where(Backtest.subject_code == request_data["subject_code"].upper())
-        .where(Backtest.course_number == request_data["course_number"])
+        .where(Backtest.subject_code == subject_code)
+        .where(Backtest.course_number == course_number)
         .where(Backtest.exam == True)
     ).all()
     quizzes = db.session.execute(
         db.select(Backtest)
-        .where(Backtest.subject_code == request_data["subject_code"].upper())
-        .where(Backtest.course_number == request_data["course_number"])
+        .where(Backtest.subject_code == subject_code)
+        .where(Backtest.course_number == course_number)
         .where(Backtest.quiz == True)
     ).all()
     midterms = db.session.execute(
         db.select(Backtest)
-        .where(Backtest.subject_code == request_data["subject_code"].upper())
-        .where(Backtest.course_number == request_data["course_number"])
+        .where(Backtest.subject_code == subject_code)
+        .where(Backtest.course_number == course_number)
         .where(Backtest.midterm == True)
     ).all()
+
+    app.logger.debug(f"Backtests quiered for {subject_code} {course_number}")
 
     if exams is None and quizzes is None and midterms is None:
         abort(404)
@@ -87,6 +94,8 @@ def backtests(request_data):
         midterms = sorted(
             midterms, key=lambda x: (x.Backtest.year, x.Backtest.semester), reverse=True
         )
+    
+    app.logger.debug(f"Backtests sorted for {subject_code} {course_number}")
 
     backtest_exams = {}
     if exams is not None:
@@ -141,6 +150,8 @@ def backtests(request_data):
                 backtest_midterms[midterm.Backtest.backtest_number].append(entry)
             else:
                 backtest_midterms[midterm.Backtest.backtest_number] = [entry]
+    
+    app.logger.debug(f"Backtest response created exams: {backtest_exams}, quizzes: {backtest_quizzes}, midterms: {backtest_midterms}")
 
     return make_response(
         {"exams": backtest_exams, "quizzes": backtest_quizzes, "midterms": backtest_midterms}, 200
