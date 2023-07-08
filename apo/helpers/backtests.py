@@ -7,10 +7,12 @@ from apo import app, db
 from apo.models import Backtest, BacktestClasses
 
 
+# String constants
 SUBJECT_CODE_QUERY = "SELECT DISTINCT subject_code FROM backtest_classes"
 SUBJECT_CODE = "subject_code"
 COURSE_NUMBER = "course_number"
 NAME = "name"
+RESPONSE = "response"
 
 
 def list_subject_codes():
@@ -30,7 +32,7 @@ def list_subject_codes():
 
 def list_classes(request_data):
     if SUBJECT_CODE not in request_data:
-        return make_response({"response": "requires subject_code"}, 400)
+        return make_response({RESPONSE: "requires subject_code"}, 400)
 
     classes = db.session.execute(
         db.select(BacktestClasses).where(
@@ -84,9 +86,7 @@ def process_backtests(bt):
 
 def backtests(request_data):
     if SUBJECT_CODE not in request_data or COURSE_NUMBER not in request_data:
-        return make_response(
-            {"response": "requires subject_code and course_number"}, 400
-        )
+        return make_response({RESPONSE: "requires subject_code and course_number"}, 400)
 
     subject_code = request_data[SUBJECT_CODE].upper()
     course_number = request_data[COURSE_NUMBER]
