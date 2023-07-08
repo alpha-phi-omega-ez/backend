@@ -1,8 +1,10 @@
-from apo import app, db
-from apo.models import Backtest, BacktestClasses
+from collections import defaultdict
 
 from flask import make_response
 from sqlalchemy import text
+
+from apo import app, db
+from apo.models import Backtest, BacktestClasses
 
 
 def list_subject_codes():
@@ -43,10 +45,21 @@ def list_classes(request_data):
             "name": bt_class.BacktestClasses.name_of_class,
             "course_number": bt_class.BacktestClasses.course_number,
         }
-    
+
     app.logger.debug(f"classes list data created {classes_dict}")
 
     return make_response(classes_dict, 200)
+
+
+def process_backtests(bt):
+    semesters = {1: "Spring", 2: "Summer", 3: "Fall"}
+
+    entry = f"{semesters.get(bt.Backtest.semester)} {bt.Backtest.year}"
+    bt_count = bt.Backtest.backtest_count
+    if bt_count > 1:
+        return entry + f" ({bt_count})"
+
+    return entry
 
 
 def backtests(request_data):
@@ -54,105 +67,52 @@ def backtests(request_data):
         return make_response(
             {"response": f"requires subject_code and course_number"}, 400
         )
-    
+
     subject_code = request_data["subject_code"].upper()
     course_number = request_data["course_number"]
 
-    exams = db.session.execute(
+    bt_select = (
         db.select(Backtest)
         .where(Backtest.subject_code == subject_code)
         .where(Backtest.course_number == course_number)
-        .where(Backtest.exam == True)
-    ).all()
-    quizzes = db.session.execute(
-        db.select(Backtest)
-        .where(Backtest.subject_code == subject_code)
-        .where(Backtest.course_number == course_number)
-        .where(Backtest.quiz == True)
-    ).all()
-    midterms = db.session.execute(
-        db.select(Backtest)
-        .where(Backtest.subject_code == subject_code)
-        .where(Backtest.course_number == course_number)
-        .where(Backtest.midterm == True)
-    ).all()
+        .order_by(Backtest.year.desc())
+        .order_by(Backtest.semester.desc())
+    )
+
+    exams = db.session.execute(bt_select.where(Backtest.exam == True)).all()
+    quizzes = db.session.execute(bt_select.where(Backtest.quiz == True)).all()
+    midterms = db.session.execute(bt_select.where(Backtest.midterm == True)).all()
 
     app.logger.debug(f"Backtests quiered for {subject_code} {course_number}")
 
     if exams is None and quizzes is None and midterms is None:
         abort(404)
 
-    if exams is not None:
-        exams = sorted(
-            exams, key=lambda x: (x.Backtest.year, x.Backtest.semester), reverse=True
-        )
-    if quizzes is not None:
-        quizzes = sorted(
-            quizzes, key=lambda x: (x.Backtest.year, x.Backtest.semester), reverse=True
-        )
-    if midterms is not None:
-        midterms = sorted(
-            midterms, key=lambda x: (x.Backtest.year, x.Backtest.semester), reverse=True
-        )
-    
-    app.logger.debug(f"Backtests sorted for {subject_code} {course_number}")
-
-    backtest_exams = {}
+    backtest_exams = defaultdict(list)
     if exams is not None:
         for exam in exams:
-            semester = "Fall"
-            if exam.Backtest.semester == 1:
-                semester = "Spring"
-            elif exam.Backtest.semester == 2:
-                semester = "Summer"
+            entry = process_backtests(exam)
+            backtest_exams[exam.Backtest.backtest_number].append(entry)
 
-            entry = f"{semester} {exam.Backtest.year}"
-            if exam.Backtest.backtest_count > 1:
-                entry += f" ({exam.Backtest.backtest_count})"
-
-            if exam.Backtest.backtest_number in backtest_exams:
-                backtest_exams[exam.Backtest.backtest_number].append(entry)
-            else:
-                backtest_exams[exam.Backtest.backtest_number] = [entry]
-
-    backtest_quizzes = {}
+    backtest_quizzes = defaultdict(list)
     if quizzes is not None:
         for quiz in quizzes:
-            semester = "Fall"
-            if quiz.Backtest.semester == 1:
-                semester = "Spring"
-            elif quiz.Backtest.semester == 2:
-                semester = "Summer"
+            entry = process_backtests(quiz)
+            backtest_quizzes[quiz.Backtest.backtest_number].append(entry)
 
-            entry = f"{semester} {quiz.Backtest.year}"
-            if quiz.Backtest.backtest_count > 1:
-                entry += f" ({quiz.Backtest.backtest_count})"
-
-            if quiz.Backtest.backtest_number in backtest_quizzes:
-                backtest_quizzes[quiz.Backtest.backtest_number].append(entry)
-            else:
-                backtest_quizzes[quiz.Backtest.backtest_number] = [entry]
-
-    backtest_midterms = {}
+    backtest_midterms = defaultdict(list)
     if midterms is not None:
         for midterm in midterms:
-            semester = "Fall"
-            if midterm.Backtest.semester == 1:
-                semester = "Spring"
-            elif midterm.Backtest.semester == 2:
-                semester = "Summer"
+            entry = process_backtests(midterm)
+            backtest_midterms[midterm.Backtest.backtest_number].append(entry)
 
-            entry = f"{semester} {midterm.Backtest.year}"
-            if midterm.Backtest.backtest_count > 1:
-                entry += f" ({midterm.Backtest.backtest_count})"
-
-            if midterm.Backtest.backtest_number in backtest_midterms:
-                backtest_midterms[midterm.Backtest.backtest_number].append(entry)
-            else:
-                backtest_midterms[midterm.Backtest.backtest_number] = [entry]
-    
-    app.logger.debug(f"Backtest response created exams: {backtest_exams}, quizzes: {backtest_quizzes}, midterms: {backtest_midterms}")
+    app.logger.debug(
+        f"Backtest response created exams: {backtest_exams}, quizzes: {backtest_quizzes}, midterms: {backtest_midterms}"
+    )
 
     return make_response(
-        {"exams": backtest_exams, "quizzes": backtest_quizzes, "midterms": backtest_midterms}, 200
+        dict(
+            exams=backtest_exams, quizzes=backtest_quizzes, midterms=backtest_midterms
+        ),
+        200,
     )
