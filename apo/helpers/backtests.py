@@ -52,9 +52,9 @@ def list_classes(request_data):
 
 
 def process_backtests(bt):
-    semesters = {1: "Spring", 2: "Summer", 3: "Fall"}
+    semesters = defaultdict(lambda: "", {1: "Spring", 2: "Summer", 3: "Fall"})
 
-    entry = f"{semesters.get(bt.Backtest.semester)} {bt.Backtest.year}"
+    entry = f"{semesters[bt.Backtest.semester]} {bt.Backtest.year}".strip()
     bt_count = bt.Backtest.backtest_count
     if bt_count > 1:
         return entry + f" ({bt_count})"
