@@ -11,14 +11,13 @@ from flask_login import current_user, login_required
 
 from apo import app, db, login_manager
 from apo.forms import LostReportForm
+from apo.helpers import backtests, chargers
 from apo.models import (
-    User,
-    BacktestClasses,
     Backtest,
+    BacktestClasses,  # , LostReport, LostItem
     Chargers,
-)  # , LostReport, LostItem
-
-from apo.helpers import chargers, backtests
+    User,
+)
 
 """
 API
