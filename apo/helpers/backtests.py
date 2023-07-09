@@ -7,16 +7,19 @@ from apo import app, db
 from apo.models import Backtest, BacktestClasses
 
 
-# String constants
-SUBJECT_CODE_QUERY = "SELECT DISTINCT subject_code FROM backtest_classes"
+# Constants
 SUBJECT_CODE = "subject_code"
 COURSE_NUMBER = "course_number"
 NAME = "name"
 RESPONSE = "response"
+SEMESTERS = defaultdict(lambda: "", {1: "Spring", 2: "Summer", 3: "Fall"})
+
+# SQL Alchemy constant
+SUBJECT_CODE_QUERY = text("SELECT DISTINCT subject_code FROM backtest_classes")
 
 
 def list_subject_codes():
-    subject_codes = db.session.execute(text(SUBJECT_CODE_QUERY)).scalars()
+    subject_codes = db.session.execute(SUBJECT_CODE_QUERY).scalars()
 
     if subject_codes is None:
         app.logger.error("Failed to query and find subject codes")
@@ -74,9 +77,8 @@ def query_backtests(subject_code, course_number):
 
 
 def process_backtests(bt):
-    semesters = defaultdict(lambda: "", {1: "Spring", 2: "Summer", 3: "Fall"})
 
-    entry = f"{semesters[bt.Backtest.semester]} {bt.Backtest.year}".strip()
+    entry = f"{SEMESTERS[bt.Backtest.semester]} {bt.Backtest.year}".strip()
     bt_count = bt.Backtest.backtest_count
     if bt_count > 1:
         return entry + f" ({bt_count})"

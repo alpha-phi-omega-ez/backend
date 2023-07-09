@@ -2,12 +2,12 @@ from apo import app, db
 from apo.models import Chargers
 
 from datetime import datetime, timezone
-import pytz
+from pytz import timezone as pytz_timezone
 
 from flask import make_response
 
 # Timezone constant
-local = pytz.timezone("US/Eastern")
+local = pytz_timezone("US/Eastern")
 
 # String constants
 FMT = "%y-%m-%d %H:%M:%S"
