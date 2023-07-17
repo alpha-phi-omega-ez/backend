@@ -1,29 +1,24 @@
 from flask import (
-    flash,
     make_response,
     redirect,
     render_template,
-    request,
     send_file,
     url_for,
+    Response
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
-from apo import app, db, login_manager, oauth  # oauth_client
+from apo import app, login_manager, oauth  # oauth_client
 from apo.forms import LostReportForm
-from apo.models import (
-    User,
-    BacktestClasses,
-    Backtest,
-    Chargers,
-)  # , LostReport, LostItem
+from apo.models import Users
 import requests
 
 
 @login_manager.user_loader
 def load_user(user_id):
     try:
-        return User.query.get(user_id)
+        # update to proper query
+        return Users.query.get(user_id)
     except:
         return None
 
@@ -178,7 +173,7 @@ SEO
 
 
 @app.route("/robots.txt", methods=["GET"])
-def robots():
+def robots() -> Response:
     # Return static robots.txt file for any web crawlers that use it
     return send_file("templates/seo/robots.txt")
 
@@ -191,7 +186,7 @@ def robots():
 
 
 @app.route("/sitemap.xml", methods=["GET"])
-def sitemap():
+def sitemap() -> Response:
     # Return static sitemap XML file for SEO
     sitemap_xml = render_template("seo/sitemap.xml")
     response = make_response(sitemap_xml)
@@ -205,12 +200,12 @@ Error Handlers
 
 
 @app.errorhandler(404)
-def page_not_found(e):
+def page_not_found(e) -> Response:
     # 404 error page
-    return render_template("404.html"), 404
+    return make_response(render_template("404.html"), 404)
 
 
 @app.errorhandler(500)
-def error_for_server(e):
+def error_for_server(e) -> Response:
     # 500 error page
-    return render_template("500.html"), 500
+    return make_response(render_template("500.html"), 500)
