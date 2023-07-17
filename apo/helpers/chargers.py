@@ -1,31 +1,17 @@
+from datetime import datetime, timezone
+
+from flask import abort
+from pytz import timezone as pytz_timezone
+
 from apo import app, db
 from apo.models import Chargers
 
-from datetime import datetime, timezone
-from pytz import timezone as pytz_timezone
-
-from flask import make_response
-
-# Timezone constant
-local = pytz_timezone("US/Eastern")
-
-# String constants
-FMT = "%y-%m-%d %H:%M:%S"
-DESC = "desc"
-IN_OFFICE = "in_office"
-CHECKED_OUT = "checked_out"
-PHONE_NUMBER = "phone_number"
-ID = "id"
-AREA_CODE = "area_code"
-MIDDLE = "middle"
-END = "end"
-RESPONSE = "response"
-
-# SQLAlchemy constants
+# Constants
+LOCAL = pytz_timezone(zone="US/Eastern")
 CHARGERS_SELECT = db.select(Chargers)
 
 
-def list_chargers(admin=False):
+def list_chargers(admin: bool) -> dict:
     chargers = db.session.execute(CHARGERS_SELECT).all()
 
     if chargers is None:
@@ -37,103 +23,114 @@ def list_chargers(admin=False):
     if admin:
         for charger in chargers:
             charger_dict[charger.Chargers.id] = {
-                DESC: charger.Chargers.description,
-                IN_OFFICE: charger.Chargers.in_office,
-                CHECKED_OUT: local.localize(charger.Chargers.checked_out).strftime(FMT),
-                PHONE_NUMBER: f"({charger.Chargers.phone_area_code}){charger.Chargers.phone_middle}-{charger.Chargers.phone_end}",
+                "desc": charger.Chargers.description,
+                "in_office": charger.Chargers.in_office,
+                "checked_out": LOCAL.localize(charger.Chargers.checked_out).strftime(
+                    "%d-%m-%Y %H:%M:%S"
+                ),
+                "phone_number": f"({charger.Chargers.phone_area_code}){charger.Chargers.phone_middle}-{charger.Chargers.phone_end}",
             }
     else:
         for charger in chargers:
             charger_dict[charger.Chargers.id] = {
-                DESC: charger.Chargers.description,
-                IN_OFFICE: charger.Chargers.in_office,
+                "desc": charger.Chargers.description,
+                "in_office": charger.Chargers.in_office,
             }
 
-    app.logger.debug(f"charger list data created {charger_dict}")
+    app.logger.debug(f"Charger list data created {charger_dict}")
     return charger_dict
 
 
-def edit_desc(request_data):
-    if ID not in request_data:
-        return make_response(
-            {RESPONSE: f"charger {charger.id} not found in request"}, 400
-        )
+def edit_desc(request_data: dict) -> dict:
+    if "id" not in request_data or "desc" not in request_data:
+        app.logger.debug("Missing request data to complete request")
+        abort(400)
 
-    charger = db.get_or_404(Chargers, request_data[ID])
+    charger = db.get_or_404(Chargers, request_data["id"])
 
-    if DESC not in request_data:
-        return make_response(
-            {RESPONSE: f"charger desc {charger.id} not found in request"}, 400
-        )
+    desc = request_data["desc"]
+    if not isinstance(desc, str):
+        app.logger.error("Description is not a string")
+        abort(400)
 
-    charger.description = request_data[DESC]
+    charger.description = desc
     db.session.commit()
 
-    app.logger.debug(f"charger {charger} description updated")
+    app.logger.debug(f"Charger {charger} description updated")
 
-    return make_response({RESPONSE: f"updated charger {charger.id} description"}, 200)
+    return {"response": f"Updated charger {charger.id} description"}
 
 
-def checkout(request_data):
-    if ID not in request_data:
-        return make_response(
-            {RESPONSE: f"charger {charger.id} not found in request"}, 400
-        )
+def checkout(request_data: dict) -> dict:
+    if (
+        "id" not in request_data
+        or "area_code" not in request_data
+        or "middle" not in request_data
+        or "end" not in request_data
+    ):
+        app.logger.debug("Missing request data to complete request")
+        abort(400)
 
-    charger = db.get_or_404(Chargers, request_data[ID])
+    area_code = request_data["phone_area_code"]
+    middle = request_data["middle"]
+    end = request_data["end"]
+
+    if (
+        isinstance(area_code, int)
+        and isinstance(middle, int)
+        and isinstance(end, int)
+        and (area_code > 999 or middle > 999 or end > 9999)
+    ):
+        app.logger.debug("Phone number input error")
+        abort(400)
+    elif area_code is not None or middle is not None or end is not None:
+        app.logger.debug("Phone number input error")
+        abort(400)
+
+    charger = db.get_or_404(Chargers, request_data["id"])
 
     if not charger.in_office:
-        return make_response({RESPONSE: f"charger {charger.id} not checked in"}, 400)
+        app.logger.debug(f"Charger {charger} is not in office and can't be checked out")
+        abort(400)
 
     charger.in_office = False
     charger.checked_out = datetime.now(timezone.utc)
 
-    if (
-        AREA_CODE not in request_data
-        or MIDDLE not in request_data
-        or END not in request_data
-    ):
-        return make_response(
-            {RESPONSE: f"phone number {charger.id} not found in request"}, 400
-        )
-
-    charger.phone_area_code = request_data[AREA_CODE]
-    charger.phone_middle = request_data[MIDDLE]
-    charger.phone_end = request_data[END]
+    charger.phone_area_code = area_code
+    charger.phone_middle = middle
+    charger.phone_end = end
     db.session.commit()
 
-    app.logger.debug(f"charger {charger} checkedout")
+    app.logger.debug(f"Charger {charger} checkedout")
 
-    return make_response({RESPONSE: f"checked out charger {charger.id}"}, 200)
+    return {"response": f"Checked out charger {charger.id}"}
 
 
-def checkin(request_data):
-    if ID not in request_data:
-        return make_response(
-            {RESPONSE: f"charger {charger.id} not found in request"}, 400
-        )
+def checkin(request_data: dict) -> dict:
+    if "id" not in request_data:
+        app.logger.debug("Missing request data to complete request")
+        abort(400)
 
-    charger = db.get_or_404(Chargers, request_data[ID])
+    charger = db.get_or_404(Chargers, request_data["id"])
 
     if charger.in_office:
-        return make_response(
-            {RESPONSE: f"charger {charger.id} already checked in"}, 400
-        )
+        app.logger.debug(f"Charger {charger} is in the office and can't be checked in")
+        abort(400)
 
     charger.in_office = True
     db.session.commit()
 
-    app.logger.debug(f"charger {charger} checkedin")
+    app.logger.debug(f"Charger {charger} checkedin")
 
-    return make_response({RESPONSE: f"checked in charger {charger.id}"}, 200)
+    return {"response": f"Checked in charger {charger.id}"}
 
 
-def create(request_data):
-    if DESC not in request_data:
-        return make_response(
-            {"response": f"charger {charger.id} desc not found in request"}, 400
-        )
-    desc = request_data[DESC]
+def create(request_data: dict) -> dict:
+    if "desc" not in request_data:
+        app.logger.debug("Missing request data to complete request")
+        abort(400)
+
+    desc = request_data["desc"]
 
     new_charger = Chargers(
         in_office=True,
@@ -146,24 +143,23 @@ def create(request_data):
     db.session.add(new_charger)
     db.session.commit()
 
-    app.logger.debug(f"charger {new_charger} created")
+    app.logger.debug(f"Charger {new_charger} created")
 
-    return make_response({RESPONSE: f"created charger {new_charger.id}"}, 200)
+    return {"response": f"created charger {new_charger.id}"}
 
 
-def delete(request_data):
-    if ID not in request_data:
-        return make_response(
-            {RESPONSE: f"charger {charger.id} not found in request"}, 400
-        )
+def delete(request_data: dict) -> dict:
+    if "id" not in request_data:
+        app.logger.debug("Missing request data to complete request")
+        abort(400)
 
-    desc = request_data[ID]
+    desc = request_data["id"]
 
-    charger = db.get_or_404(Chargers, request_data[ID])
+    charger = db.get_or_404(Chargers, request_data["id"])
 
     db.session.delete(charger)
     db.session.commit()
 
-    app.logger.debug(f"charger {charger} deleted")
+    app.logger.debug(f"Charger {charger} deleted")
 
-    return make_response({RESPONSE: f"charger {charger.id} deleted"}, 200)
+    return {"response": f"Charger {charger.id} deleted"}
