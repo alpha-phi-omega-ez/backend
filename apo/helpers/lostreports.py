@@ -3,7 +3,7 @@ from datetime import date, datetime
 from flask import abort
 
 from apo import app, db
-from apo.models import ArchivedLostReports, LostReports
+from apo.models import LostReports
 
 # Constants
 LOST_REPORTS_SELECT = db.select(LostReports)
@@ -206,24 +206,8 @@ def archive_lostreport(request_data: dict) -> dict:
 
     lost_report = db.get_or_404(LostReports, request_data["id"])
 
-    new_archived_lost_report = ArchivedLostReports(
-        first_name=lost_report.first_name,
-        last_name=lost_report.last_name,
-        email=lost_report.email,
-        phone_area_code=lost_report.phone_area_code,
-        phone_middle=lost_report.phone_middle,
-        phone_end=lost_report.phone_end,
-        description=lost_report.description,
-        item_type=lost_report.item_type,
-        locations=lost_report.locations,
-        date_lost=lost_report.date_lost,
-        date_added=lost_report.date_added,
-        date_archived=date.today(),
-        found=request_data["found"],
-    )
-
-    db.session.add(new_archived_lost_report)
-    db.session.delete(lost_report)
+    lost_report.archived = True
+    lost_report.archived_dt = datetime.now()
     db.session.commit()
 
-    return {"response": f"Archived lost report: {new_archived_lost_report}"}
+    return {"response": f"Archived lost report: {lost_report}"}
