@@ -25,7 +25,21 @@ or
 pip install -r requirements.txt
 ```
 
-### Run 
+### Run for Development
+
+The server will auto-reload on changes to make it easier to develop and test.
+
+```
+make develop
+```
+
+or
+
+```
+python run.py
+```
+
+### Run for Production
 
 ```
 make run
@@ -34,7 +48,7 @@ make run
 or
 
 ```
-gunicorn run:app
+gunicorn run:app -w 6 --preload --max-requests-jitter 300
 ```
 
 
