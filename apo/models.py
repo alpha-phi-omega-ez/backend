@@ -1,3 +1,5 @@
+from email.policy import default
+from enum import unique
 from flask_login import UserMixin
 
 from apo import db
@@ -81,53 +83,25 @@ class LostReports(db.Model):
     locations = db.Column(db.Text, nullable=False, unique=False)
     date_lost = db.Column(db.Date, nullable=False, unique=False)
     date_added = db.Column(db.Date, nullable=False, unique=False)
+    archived = db.Column(db.Boolean, nullable=False, unique=False, default=False)
+    archived_dt = db.Column(db.DateTime, nullable=True, unique=False)
+    # match column with LAF item
 
     def __str__(self) -> str:
         return f"Lost Report {self.id}, {self.first_name} {self.last_name} {self.email} ({self.phone_area_code}){self.phone_middle}-{self.phone_end}, description: {self.description}, {self.item_type}, locations: {self.locations}, lost: {self.date_lost}, added: {self.date_added}"
 
 
-class ArchivedLostReports(db.Model):
-    __tablename__ = "archived_lost_reports"
+class LostItems(db.Model):
+    __tablename__ = "lost_items"
     id = db.Column(db.Integer, primary_key=True, unique=True)
-    first_name = db.Column(db.String(40), nullable=False, unique=False)
-    last_name = db.Column(db.String(50), nullable=False, unique=False)
-    email = db.Column(db.String(100), nullable=False, unique=False)
-    phone_area_code = db.Column(db.Integer, nullable=True, unique=False)
-    phone_middle = db.Column(db.Integer, nullable=True, unique=False)
-    phone_end = db.Column(db.Integer, nullable=True, unique=False)
     description = db.Column(db.Text, nullable=False, unique=False)
+    lost_report_match = db.Column(db.Integer, unique=True, nullable=True)
     item_type = db.Column(db.String(25), nullable=False, unique=False)
     locations = db.Column(db.Text, nullable=False, unique=False)
     date_lost = db.Column(db.Date, nullable=False, unique=False)
-    date_added = db.Column(db.Date, nullable=False, unique=False)
-    date_archived = db.Column(db.Date, nullable=False, unique=False)
-    found = db.Column(db.Boolean, nullable=False, unique=False)
-    # laf_id = db.Column(db.Integer, unique=True, nullable=True)
-
-    def __str__(self) -> str:
-        return f"Archived Lost Report {self.id}, {self.first_name} {self.last_name} {self.email} ({self.phone_area_code}){self.phone_middle}-{self.phone_end}, description: {self.description}, {self.item_type}, locations: {self.locations}, lost: {self.date_lost}, added: {self.date_added}, found: {self.found}, archived: {self.date_archived}"
-
-
-# class LostItems(db.Model):
-#     __tablename__ = "lost_items"
-#     id = db.Column(db.Integer, primary_key=True, unique=True)
-#     description = db.Column(db.Text, nullable=False, unique=False)
-#     lost_report_match = db.Column(db.Integer, unique=True, nullable=True)
-#     item_type = db.Column(db.String(25), nullable=False, unique=False)
-#     locations = db.Column(db.Text, nullable=False, unique=False)
-#     date_lost = db.Column(db.Date, nullable=False, unique=False)
-
-
-# class ArchivedLostItems(db.Model):
-#     __tablename__ = "archived_lost_items"
-#     id = db.Column(db.Integer, primary_key=True, unique=True)
-#     description = db.Column(db.Text, nullable=False, unique=False)
-#     # lost_report_match = db.Column(db.Integer, unique=True, nullable=True)
-#     item_type = db.Column(db.String(15), nullable=False, unique=False)
-#     locations = db.Column(db.Text, nullable=False, unique=False)
-#     date_lost = db.Column(db.Date, nullable=False, unique=False)
-#     date_archived = db.Column(db.Date, nullable=False, unique=False)
-#     found = db.Column(db.Boolean, nullable=False, unique=False)
+    archived = db.Column(db.Boolean, nullable=False, unique=False, default=False)
+    archived_dt = db.Column(db.DateTime, nullable=True, unique=False)
+    # match column with lost report
 
 
 # Metrics models

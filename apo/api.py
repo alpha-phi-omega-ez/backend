@@ -1,10 +1,10 @@
 from flask import make_response, request, Response
+from flask_login import login_required
 
 # from flask_login import current_user, login_required
 
 from apo import app  # , login_manager
-from apo.forms import LostReportForm
-from apo.helpers import backtests, chargers, lostreports
+from apo.helpers import backtests, chargers, lostreports, laf
 
 
 """
@@ -90,18 +90,48 @@ def list_lost_reports() -> Response:
 def create_lost_report() -> Response:
     app.logger.info("/api/v1/lostreports/create called")
     app.logger.debug(f"request data: {request.get_json()}")
-    return make_response(lostreports.create_lostreport(request_data=request.get_json()), 200)
+    return make_response(
+        lostreports.create_lostreport(request_data=request.get_json()), 200
+    )
 
 
 @app.route("/api/v1/lostreports/edit", methods=["PUT"])
 def edit_lost_report() -> Response:
     app.logger.info("/api/v1/lostreports/edit called")
     app.logger.debug(f"request data: {request.get_json()}")
-    return make_response(lostreports.edit_lostreport(request_data=request.get_json()), 200)
+    return make_response(
+        lostreports.edit_lostreport(request_data=request.get_json()), 200
+    )
 
 
 @app.route("/api/v1/lostreports/archive", methods=["PUT"])
 def archive_lost_report() -> Response:
     app.logger.info("/api/v1/lostreports/archive called")
     app.logger.debug(f"request data: {request.get_json()}")
-    return make_response(lostreports.archive_lostreport(request_data=request.get_json()), 200)
+    return make_response(
+        lostreports.archive_lostreport(request_data=request.get_json()), 200
+    )
+
+
+# @login_required
+@app.route("/api/v1/laf/create", methods=["POST"])
+def create_laf() -> Response:
+    app.logger.info("/api/v1/laf/create called")
+    app.logger.debug(f"request data: {request.get_json()}")
+    return make_response(laf.create(request_data=request.get_json()), 200)
+
+
+# @login_required
+@app.route("/api/v1/laf/edit", methods=["PUT"])
+def edit_laf() -> Response:
+    app.logger.info("/api/v1/laf/edit called")
+    app.logger.debug(f"request data: {request.get_json()}")
+    return make_response(laf.edit(request_data=request.get_json()), 200)
+
+
+# @login_required
+@app.route("/api/v1/laf/archive", methods=["PUT"])
+def archive_laf() -> Response:
+    app.logger.info("/api/v1/laf/archive called")
+    app.logger.debug(f"request data: {request.get_json()}")
+    return make_response(laf.archive(request_data=request.get_json()), 200)
