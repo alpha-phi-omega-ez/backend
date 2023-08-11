@@ -4,11 +4,11 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config():
     # Configuration
-    GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
-    GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None)
+    GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None) # Not used right now
+    GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None) # Not used right now
     GOOGLE_DISCOVERY_URL = (
         "https://accounts.google.com/.well-known/openid-configuration"
-    )
+    )  # Not used right now
 
     SECRET_KEY = os.environ.get("SECRET_KEY", os.urandom(32))
 
