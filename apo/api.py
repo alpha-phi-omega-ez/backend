@@ -1,9 +1,9 @@
 from flask import make_response, request, Response
 from flask_login import login_required
 
-# from flask_login import current_user, login_required
+from flask_login import current_user, login_required
 
-from apo import app  # , login_manager
+from apo import app, login_manager
 from apo.helpers import backtests, chargers, lostreports, laf
 
 

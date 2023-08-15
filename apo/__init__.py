@@ -5,7 +5,7 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
-# from oauthlib.oauth2 import WebApplicationClient
+from oauthlib.oauth2 import WebApplicationClient
 from authlib.integrations.flask_client import OAuth
 
 # Create flask app object
@@ -23,7 +23,7 @@ login_manager.login_message_category = "warning"
 login_manager.session_protection = "strong"
 
 # Create OAuth Client
-# oauth_client = WebApplicationClient(app.config["GOOGLE_CLIENT_ID"])
+oauth_client = WebApplicationClient(app.config["GOOGLE_CLIENT_ID"])
 oauth = OAuth(app)
 
 # Import all api endpoints
