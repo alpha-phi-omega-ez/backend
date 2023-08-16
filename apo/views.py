@@ -5,7 +5,8 @@ from flask import (
     send_file,
     url_for,
     Response,
-    request
+    request,
+    abort
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
@@ -13,6 +14,7 @@ from apo import app, login_manager, oauth, oauth_client
 from apo.forms import LostReportForm
 from apo.models import Users
 import requests
+import json
 
 
 @login_manager.user_loader
@@ -72,7 +74,7 @@ def login():
     # Find out what URL to hit for Google login
     google_provider_cfg = get_google_provider_cfg()
     if not google_provider_cfg:
-        return 500
+        return abort(500)
     authorization_endpoint = google_provider_cfg["authorization_endpoint"]
 
     # Use library to construct the request for Google login and provide
@@ -95,7 +97,7 @@ def callback():
     # things on behalf of a user
     google_provider_cfg = get_google_provider_cfg()
     if not google_provider_cfg:
-        return 500
+        return abort(500)
     token_endpoint = google_provider_cfg["token_endpoint"]
     # Prepare and send a request to get tokens! Yay tokens!
     token_url, headers, body = oauth_client.prepare_token_request(
@@ -111,7 +113,7 @@ def callback():
         auth=(app.config["GOOGLE_CLIENT_ID"], app.config["GOOGLE_CLIENT_SECRET"]),
     )
     if not token_response:
-        return 500
+        return abort(500)
 
     # Parse the tokens!
     oauth_client.parse_request_body_response(json.dumps(token_response.json()))
@@ -138,7 +140,7 @@ def callback():
 
     # Create a user in your db with the information provided
     # by Google
-    if not User.query.get(unique_id):
+    if not Users.query.get(unique_id):
         user = User(
             id_=unique_id,
             name=users_name,
