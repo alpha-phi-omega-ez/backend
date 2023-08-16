@@ -10,7 +10,7 @@ from flask import (
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
-from apo import app, login_manager, oauth, oauth_client
+from apo import app, login_manager, oauth, oauth_client, db
 from apo.forms import LostReportForm
 from apo.models import Users
 import requests
@@ -141,8 +141,9 @@ def callback():
     # Create a user in your db with the information provided
     # by Google
     if not Users.query.get(unique_id):
-        user = User(
-            id_=unique_id,
+
+        user = Users(
+            id=unique_id,
             name=users_name,
             email=users_email
         )
