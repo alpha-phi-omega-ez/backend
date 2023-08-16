@@ -79,7 +79,7 @@ gunicorn run:app -w 6 --preload --max-requests-jitter 300
 
 ### Run with HTTPS
 
-Extra configuration is necessary to run the server in HTTPS mode. To generate your own certificate files for the server to use, please follow the directions at https://deliciousbrains.com/ssl-certificate-authority-for-local-https-development/#how-it-works. This guide also specifies how to get your computer to trust the generated server certificate. Test certificates are also available in the test-certs directory; if these are used, your browser will not trust the server certificate, which must be manually bypassed, but should not affect the website. Run the server with the test certificate with
+Extra configuration is necessary to run the server in HTTPS mode. To generate your own certificate files for the server to use, please follow the directions at https://deliciousbrains.com/ssl-certificate-authority-for-local-https-development/#how-it-works. This guide also specifies how to get your computer to trust the generated server certificate. As an alternative, test certificates are also available in the test-certs directory; if these are used, your browser will not trust the server certificate. This must be manually bypassed, but should not affect the website. Run the server with the test certificate with
 ```
 gunicorn --certfile=test-certs/test.crt --keyfile=test-certs/test.key run:app -w 6 --preload --max-requests-jitter 300
 ```
