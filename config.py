@@ -1,6 +1,9 @@
 # Import os
 import os
+from dotenv import load_dotenv
+
 basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '.env'))
 
 class Config():
     # Configuration
@@ -8,7 +11,7 @@ class Config():
     GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None) # Not used right now
     GOOGLE_DISCOVERY_URL = (
         "https://accounts.google.com/.well-known/openid-configuration"
-    )  # Not used right now
+    )
 
     SECRET_KEY = os.environ.get("SECRET_KEY", os.urandom(32))
 
