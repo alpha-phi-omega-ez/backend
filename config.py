@@ -1,6 +1,9 @@
 # Import os
 import os
+from dotenv import load_dotenv
+
 basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '.env'))
 
 from pathlib import Path
 import json
@@ -23,7 +26,7 @@ class Config():
 
     GOOGLE_DISCOVERY_URL = (
         "https://accounts.google.com/.well-known/openid-configuration"
-    )  # Not used right now
+    )
 
     TESTING = False
     DEBUG = False
