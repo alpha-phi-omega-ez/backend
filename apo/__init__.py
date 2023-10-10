@@ -8,6 +8,8 @@ from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
 from oauthlib.oauth2 import WebApplicationClient
+from authlib.integrations.flask_client import OAuth
+
 # from authlib.integrations.flask_client import OAuth
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
@@ -33,7 +35,6 @@ if environment == "config.ProductionConfig":
         traces_sample_rate=1.0
     )
 
-
 # Create flask app object
 app = Flask(__name__)
 app.config.from_object(environment)
@@ -50,7 +51,7 @@ login_manager.session_protection = "strong"
 
 # Create OAuth Client
 oauth_client = WebApplicationClient(app.config["GOOGLE_CLIENT_ID"])
-# oauth = OAuth(app)
+oauth = OAuth(app)
 
 # Import all api endpoints
 import apo.api
