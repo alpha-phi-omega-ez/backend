@@ -5,11 +5,12 @@ from flask import (
     send_file,
     url_for,
     request,
-    Response
+    Response,
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
-from apo import app, login_manager, db, oauth_client#, oauth
+from apo import app, login_manager, db, oauth_client  # , oauth
+
 # from apo.forms import LostReportForm
 from apo.models import Users
 import requests
@@ -104,7 +105,7 @@ def callback():
         token_endpoint,
         authorization_response=request.url,
         redirect_url=request.base_url,
-        code=code
+        code=code,
     )
     token_response = requests.post(
         token_url,
@@ -138,16 +139,11 @@ def callback():
         # flash fail to login
         return "User email not available or not verified by Google.", 400
 
-
     # Create a user in your db with the information provided
     # by Google
     user = Users.query.get(unique_id)
     if not user:
-        user = Users(
-            id_=unique_id,
-            name=users_name,
-            email=users_email
-        )
+        user = Users(id_=unique_id, name=users_name, email=users_email)
         db.session.add(user)
         db.session.commit()
 

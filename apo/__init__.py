@@ -8,29 +8,28 @@ from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
 from oauthlib.oauth2 import WebApplicationClient
+
 # from authlib.integrations.flask_client import OAuth
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(os.path.join(basedir, '../.env'))
+load_dotenv(os.path.join(basedir, "../.env"))
 
 environment = os.environ.get("CONFIG", "config.TestingConfig")
 print(os.environ.get("CONFIG"))
 print(os.environ.get("SENTRY_URL"))
 
 if environment == "config.ProductionConfig":
-
     sentry_sdk.init(
         dsn=os.environ.get("SENTRY_URL"),
         integrations=[
             FlaskIntegration(),
         ],
-
         # Set traces_sample_rate to 1.0 to capture 100%
         # of transactions for performance monitoring.
         # We recommend adjusting this value in production.
-        traces_sample_rate=1.0
+        traces_sample_rate=1.0,
     )
 
 
