@@ -56,30 +56,30 @@ elif sys.argv[1] == "create":
 
             db.session.add(new_backtest_class)
             db.session.commit()
-        
+
         exam_type = (
-                        "exam",
-                        "quiz",
-                        "midterm",
-                        "exam",
-                        "exam",
-                        "quiz",
-                        "quiz",
-                        "quiz",
-                        "quiz",
-                        "quiz",
-                    )
-        
+            "exam",
+            "quiz",
+            "midterm",
+            "exam",
+            "exam",
+            "quiz",
+            "quiz",
+            "quiz",
+            "quiz",
+            "quiz",
+        )
+
         exam_years = (
-                            2016,
-                            2017,
-                            2018,
-                            2019,
-                            2020,
-                            2021,
-                            2022,
-                            2023,
-                        )
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+        )
 
         for bt_class in courses:
             for j in range(0, 20):
@@ -164,10 +164,50 @@ elif sys.argv[1] == "create":
             db.session.commit()
 
         lost_reports = (
-            ("Alfred", "Glump", "glump@rpi.edu", 518, 276, 6516, "teal hand made glump with wood peg foot", "Miscellaneous", "Union"),
-            ("Dean Arno", "Nowotny", "nowotny@rpi.edu", 518, 276, 6516, "the greatest service program", "Umbrella", "Union,DCC,JEC"),
-            ("Josiah", "Frank", "frank@rpi.edu", 518, 276, 6516, "the history of apo", "Apparel", "Westhall,Folsom Library"),
-            ("M. R.", "Disborough", "disborough@rpi.edu", 518, 276, 6516, "scouting", "Waterbottle", "Union,DCC,JEC,West hall,Folsom Library,MRC,SLL,RSDH,Commons,Sage,Walker"),
+            (
+                "Alfred",
+                "Glump",
+                "glump@rpi.edu",
+                518,
+                276,
+                6516,
+                "teal hand made glump with wood peg foot",
+                "Miscellaneous",
+                "Union",
+            ),
+            (
+                "Dean Arno",
+                "Nowotny",
+                "nowotny@rpi.edu",
+                518,
+                276,
+                6516,
+                "the greatest service program",
+                "Umbrella",
+                "Union,DCC,JEC",
+            ),
+            (
+                "Josiah",
+                "Frank",
+                "frank@rpi.edu",
+                518,
+                276,
+                6516,
+                "the history of apo",
+                "Apparel",
+                "Westhall,Folsom Library",
+            ),
+            (
+                "M. R.",
+                "Disborough",
+                "disborough@rpi.edu",
+                518,
+                276,
+                6516,
+                "scouting",
+                "Waterbottle",
+                "Union,DCC,JEC,West hall,Folsom Library,MRC,SLL,RSDH,Commons,Sage,Walker",
+            ),
         )
 
         for report in lost_reports:

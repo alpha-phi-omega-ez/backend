@@ -6,7 +6,7 @@ from flask import (
     url_for,
     Response,
     request,
-    abort
+    abort,
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
@@ -14,6 +14,8 @@ from apo import app, login_manager, oauth, oauth_client, db
 from apo.forms import LostReportForm
 from apo.models import Users
 import requests
+import json
+
 import json
 
 
@@ -45,26 +47,26 @@ def index():
 
 @app.route("/login/")
 def google():
-  oauth.register(
-    name="google",
-    client_id=app.config["GOOGLE_CLIENT_ID"],
-    client_secret=app.config["GOOGLE_CLIENT_SECRET"],
-    server_metadata_url=app.config["GOOGLE_DISCOVERY_URL"],
-    client_kwargs={"scope": "openid email profile"},
-  )
+    oauth.register(
+        name="google",
+        client_id=app.config["GOOGLE_CLIENT_ID"],
+        client_secret=app.config["GOOGLE_CLIENT_SECRET"],
+        server_metadata_url=app.config["GOOGLE_DISCOVERY_URL"],
+        client_kwargs={"scope": "openid email profile"},
+    )
 
-  # Redirect to google_auth function
-  redirect_uri = url_for("google_auth", _external=True)
-  print(redirect_uri)
-  return oauth.google.authorize_redirect(redirect_uri)
+    # Redirect to google_auth function
+    redirect_uri = url_for("google_auth", _external=True)
+    print(redirect_uri)
+    return oauth.google.authorize_redirect(redirect_uri)
 
 
 @app.route("/login/callback/")
 def google_auth():
-  token = oauth.google.authorize_access_token()
-  user = oauth.google.parse_id_token(token)
-  print(" Google User ", user)
-  return redirect(index)
+    token = oauth.google.authorize_access_token()
+    user = oauth.google.parse_id_token(token)
+    print(" Google User ", user)
+    return redirect(index)
 
 
 # Google OAuth Login following this guide:
@@ -74,7 +76,7 @@ def login():
     # Find out what URL to hit for Google login
     google_provider_cfg = get_google_provider_cfg()
     if not google_provider_cfg:
-        return abort(500)
+        abort(500)
     authorization_endpoint = google_provider_cfg["authorization_endpoint"]
 
     # Use library to construct the request for Google login and provide
@@ -97,14 +99,14 @@ def callback():
     # things on behalf of a user
     google_provider_cfg = get_google_provider_cfg()
     if not google_provider_cfg:
-        return abort(500)
+        abort(500)
     token_endpoint = google_provider_cfg["token_endpoint"]
     # Prepare and send a request to get tokens! Yay tokens!
     token_url, headers, body = oauth_client.prepare_token_request(
         token_endpoint,
         authorization_response=request.url,
         redirect_url=request.base_url,
-        code=code
+        code=code,
     )
     token_response = requests.post(
         token_url,
@@ -113,7 +115,7 @@ def callback():
         auth=(app.config["GOOGLE_CLIENT_ID"], app.config["GOOGLE_CLIENT_SECRET"]),
     )
     if not token_response:
-        return abort(500)
+        abort(500)
 
     # Parse the tokens!
     oauth_client.parse_request_body_response(json.dumps(token_response.json()))
@@ -124,6 +126,7 @@ def callback():
     userinfo_endpoint = google_provider_cfg["userinfo_endpoint"]
     uri, headers, body = oauth_client.add_token(userinfo_endpoint)
     userinfo_response = requests.get(uri, headers=headers, data=body)
+
     # You want to make sure their email is verified.
     # The user authenticated with Google, authorized your
     # app, and now you've verified their email through Google!
@@ -137,16 +140,10 @@ def callback():
         # flash fail to login
         return "User email not available or not verified by Google.", 400
 
-
     # Create a user in your db with the information provided
     # by Google
     if not Users.query.get(unique_id):
-
-        user = Users(
-            id=unique_id,
-            name=users_name,
-            email=users_email
-        )
+        user = Users(id=unique_id, name=users_name, email=users_email)
         db.session.add(user)
         db.session.commit()
     # Begin user session by logging the user in

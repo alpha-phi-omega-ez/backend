@@ -10,5 +10,4 @@ __status__ = "Development"
 from apo import app
 
 if __name__ == "__main__":
-    # app.run(ssl_context="adhoc", port="8000")
     app.run(port="8000")
