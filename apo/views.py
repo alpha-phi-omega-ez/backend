@@ -6,7 +6,7 @@ from flask import (
     url_for,
     Response,
     request,
-    abort
+    abort,
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
@@ -47,26 +47,26 @@ def index():
 
 @app.route("/login/")
 def google():
-  oauth.register(
-    name="google",
-    client_id=app.config["GOOGLE_CLIENT_ID"],
-    client_secret=app.config["GOOGLE_CLIENT_SECRET"],
-    server_metadata_url=app.config["GOOGLE_DISCOVERY_URL"],
-    client_kwargs={"scope": "openid email profile"},
-  )
+    oauth.register(
+        name="google",
+        client_id=app.config["GOOGLE_CLIENT_ID"],
+        client_secret=app.config["GOOGLE_CLIENT_SECRET"],
+        server_metadata_url=app.config["GOOGLE_DISCOVERY_URL"],
+        client_kwargs={"scope": "openid email profile"},
+    )
 
-  # Redirect to google_auth function
-  redirect_uri = url_for("google_auth", _external=True)
-  print(redirect_uri)
-  return oauth.google.authorize_redirect(redirect_uri)
+    # Redirect to google_auth function
+    redirect_uri = url_for("google_auth", _external=True)
+    print(redirect_uri)
+    return oauth.google.authorize_redirect(redirect_uri)
 
 
 @app.route("/login/callback/")
 def google_auth():
-  token = oauth.google.authorize_access_token()
-  user = oauth.google.parse_id_token(token)
-  print(" Google User ", user)
-  return redirect(index)
+    token = oauth.google.authorize_access_token()
+    user = oauth.google.parse_id_token(token)
+    print(" Google User ", user)
+    return redirect(index)
 
 
 # Google OAuth Login following this guide:
@@ -143,12 +143,7 @@ def callback():
     # Create a user in your db with the information provided
     # by Google
     if not Users.query.get(unique_id):
-
-        user = Users(
-            id=unique_id,
-            name=users_name,
-            email=users_email
-        )
+        user = Users(id=unique_id, name=users_name, email=users_email)
         db.session.add(user)
         db.session.commit()
     # Begin user session by logging the user in
