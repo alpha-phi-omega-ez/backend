@@ -20,7 +20,7 @@ def list_chargers_api() -> Response:
 
 
 # @login_required
-@app.route("/api/v1/chargers/edit", methods=["PUT"])
+@app.route("/api/v1/chargers", methods=["PATCH"])
 def update_charger_desc_api() -> Response:
     app.logger.info("/api/v1/chargers/edit called")
     app.logger.debug(f"request data: {request.get_json()}")
@@ -44,7 +44,7 @@ def checkin_charger_api() -> Response:
 
 
 # @login_required
-@app.route("/api/v1/chargers/create", methods=["POST"])
+@app.route("/api/v1/chargers", methods=["POST"])
 def create_charger_api() -> Response:
     app.logger.debug("/api/v1/chargers/admin/create")
     app.logger.debug(f"request data: {request.get_json()}")
@@ -52,7 +52,7 @@ def create_charger_api() -> Response:
 
 
 # @login_required
-@app.route("/api/v1/chargers/delete", methods=["DELETE"])
+@app.route("/api/v1/chargers", methods=["DELETE"])
 def delete_charger_api() -> Response:
     app.logger.debug("/api/v1/chargers/admin/delete")
     app.logger.debug(f"request data: {request.get_json()}")
@@ -86,7 +86,7 @@ def list_lost_reports() -> Response:
     return make_response(lostreports.lostreports(), 200)
 
 
-@app.route("/api/v1/lostreports/create", methods=["POST"])
+@app.route("/api/v1/lostreports", methods=["POST"])
 def create_lost_report() -> Response:
     app.logger.info("/api/v1/lostreports/create called")
     app.logger.debug(f"request data: {request.get_json()}")
@@ -95,7 +95,7 @@ def create_lost_report() -> Response:
     )
 
 
-@app.route("/api/v1/lostreports/edit", methods=["PUT"])
+@app.route("/api/v1/lostreports", methods=["PATCH"])
 def edit_lost_report() -> Response:
     app.logger.info("/api/v1/lostreports/edit called")
     app.logger.debug(f"request data: {request.get_json()}")
@@ -114,7 +114,7 @@ def archive_lost_report() -> Response:
 
 
 # @login_required
-@app.route("/api/v1/laf/create", methods=["POST"])
+@app.route("/api/v1/laf", methods=["POST"])
 def create_laf() -> Response:
     app.logger.info("/api/v1/laf/create called")
     app.logger.debug(f"request data: {request.get_json()}")
@@ -122,7 +122,7 @@ def create_laf() -> Response:
 
 
 # @login_required
-@app.route("/api/v1/laf/edit", methods=["PUT"])
+@app.route("/api/v1/laf", methods=["PUT"])
 def edit_laf() -> Response:
     app.logger.info("/api/v1/laf/edit called")
     app.logger.debug(f"request data: {request.get_json()}")

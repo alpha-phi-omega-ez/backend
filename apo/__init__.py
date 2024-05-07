@@ -1,6 +1,6 @@
 import os
 
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 # Import Flask modules
 from flask import Flask
@@ -8,13 +8,12 @@ from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
 from oauthlib.oauth2 import WebApplicationClient
-
-# from authlib.integrations.flask_client import OAuth
+from authlib.integrations.flask_client import OAuth
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(os.path.join(basedir, "../.env"))
+# load_dotenv(os.path.join(basedir, "../.env"))
 
 environment = os.environ.get("CONFIG", "config.TestingConfig")
 print(os.environ.get("CONFIG"))
