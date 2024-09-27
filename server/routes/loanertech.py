@@ -83,3 +83,19 @@ async def checkout_loanertech(id: str, req: LoanerTechCheckout = Body(...)):
         404,
         "There was an error checking out the loanertech data.",
     )
+
+
+@router.put(f"/checkin/{id}")
+async def checkin_loanertech(id: str, req: LoanerTechCheckIn = Body(...)):
+    dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
+    updated_loanertech = await update_loanertech(id, dict_req)
+    if updated_loanertech:
+        return ResponseModel(
+            f"LoanerTech with ID: {id} checked in",
+            "LoanerTech checked in successfully",
+        )
+    return ErrorResponseModel(
+        "An error occurred",
+        404,
+        "There was an error checking in the loanertech data.",
+    )
