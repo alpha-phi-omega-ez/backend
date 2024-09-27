@@ -8,7 +8,7 @@ run: clean
 	gunicorn run:app
 
 develop: clean
-	python run.py
+	python3 main.py
 
-prod: clean
-	gunicorn run:app -w 6 --preload --max-requests-jitter 300
+start_db:
+	mongod --dbpath db/data --logpath db/logs/mongodb.log --fork
