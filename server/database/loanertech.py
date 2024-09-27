@@ -1,6 +1,6 @@
 from bson.objectid import ObjectId
-from server.database import database
 
+from server.database import database
 
 loanertech_collection = database.get_collection("loanertech_collection")
 
