@@ -16,8 +16,6 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # load_dotenv(os.path.join(basedir, "../.env"))
 
 environment = os.environ.get("CONFIG", "config.TestingConfig")
-print(os.environ.get("CONFIG"))
-print(os.environ.get("SENTRY_URL"))
 
 if environment == "config.ProductionConfig":
     sentry_sdk.init(
