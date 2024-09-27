@@ -22,8 +22,8 @@ router = APIRouter()
 
 @router.post("/", response_description="LoanerTech data added into the database")
 async def add_loanertech_data(loanertech: LoanerTech = Body(...)) -> dict[str, Any]:
-    loanertech = jsonable_encoder(loanertech)
-    new_loanertech = await add_loanertech(loanertech)
+    dict_loanertech = jsonable_encoder(loanertech)
+    new_loanertech = await add_loanertech(dict_loanertech)
     return ResponseModel(new_loanertech, "LoanerTech added successfully.")
 
 
@@ -45,8 +45,8 @@ async def get_loanertech_data(id):
 
 @router.put("/{id}")
 async def update_loanertech_data(id: str, req: LoanerTech = Body(...)):
-    req = {k: v for k, v in req.dict().items() if v is not None}
-    updated_loanertech = await update_loanertech(id, req)
+    dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
+    updated_loanertech = await update_loanertech(id, dict_req)
     if updated_loanertech:
         return ResponseModel(
             "LoanerTech with ID: {} name update is successful".format(id),
