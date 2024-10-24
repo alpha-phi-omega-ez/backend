@@ -11,16 +11,9 @@ from server.database.loanertech import (
     update_loanertech,
 )
 from server.models import ErrorResponseModel, ResponseModel
-from server.models.loanertech import LoanerTech, LoanerTechCheckIn, LoanerTechCheckout
+from server.models.loanertech import LoanerTech, LoanerTechCheckout
 
 router = APIRouter()
-
-
-@router.post("/", response_description="LoanerTech data added into the database")
-async def add_loanertech_data(loanertech: LoanerTech = Body(...)) -> dict[str, Any]:
-    dict_loanertech = jsonable_encoder(loanertech)
-    new_loanertech = await add_loanertech(dict_loanertech)
-    return ResponseModel(new_loanertech, "LoanerTech added successfully.")
 
 
 @router.get("/", response_description="LoanerTech list retrieved")
@@ -31,8 +24,15 @@ async def get_loanertechs():
     return ResponseModel(loanertechs, "Empty list returned")
 
 
+@router.post("/", response_description="LoanerTech data added into the database")
+async def add_loanertech_data(loanertech: LoanerTech = Body(...)) -> dict[str, Any]:
+    dict_loanertech = jsonable_encoder(loanertech)
+    new_loanertech = await add_loanertech(dict_loanertech)
+    return ResponseModel(new_loanertech, "LoanerTech added successfully.")
+
+
 @router.get("/{id}", response_description="LoanerTech data retrieved")
-async def get_loanertech_data(id):
+async def get_loanertech_data(id: int):
     loanertech = await retrieve_loanertech(id)
     if loanertech:
         return ResponseModel(loanertech, "LoanerTech data retrieved successfully")
@@ -40,7 +40,7 @@ async def get_loanertech_data(id):
 
 
 @router.put("/{id}")
-async def update_loanertech_data(id: str, req: LoanerTech = Body(...)):
+async def update_loanertech_data(id: int, req: LoanerTech = Body(...)):
     dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
     updated_loanertech = await update_loanertech(id, dict_req)
     if updated_loanertech:
@@ -58,7 +58,7 @@ async def update_loanertech_data(id: str, req: LoanerTech = Body(...)):
 @router.delete(
     "/{id}", response_description="LoanerTech data deleted from the database"
 )
-async def delete_loanertech_data(id: str):
+async def delete_loanertech_data(id: int):
     deleted_loanertech = await delete_loanertech(id)
     if deleted_loanertech:
         return ResponseModel(
@@ -69,9 +69,10 @@ async def delete_loanertech_data(id: str):
     )
 
 
-@router.put(f"/checkout/{id}")
-async def checkout_loanertech(id: str, req: LoanerTechCheckout = Body(...)):
+@router.put("/checkout/{id}")
+async def checkout_loanertech(id: int, req: LoanerTechCheckout = Body(...)):
     dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
+    dict_req["in_office"] = False
     updated_loanertech = await update_loanertech(id, dict_req)
     if updated_loanertech:
         return ResponseModel(
@@ -85,9 +86,9 @@ async def checkout_loanertech(id: str, req: LoanerTechCheckout = Body(...)):
     )
 
 
-@router.put(f"/checkin/{id}")
-async def checkin_loanertech(id: str, req: LoanerTechCheckIn = Body(...)):
-    dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
+@router.put("/checkin/{id}")
+async def checkin_loanertech(id: int):
+    dict_req = {"phone": "", "email": "", "in_office": True}
     updated_loanertech = await update_loanertech(id, dict_req)
     if updated_loanertech:
         return ResponseModel(
