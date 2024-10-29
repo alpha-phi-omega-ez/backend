@@ -2,25 +2,23 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from server.routes.loanertech import router as LoanerTechRouter
+from server.routes.auth import router as AuthRouter
+from server.config import get_settings
 
 app = FastAPI()
-
-# Define the origins that are allowed to make requests to your FastAPI app
-origins = [
-    "http://localhost:3000",  # Frontend URL
-    # Add other origins as needed
-]
+settings = get_settings()
 
 # Add CORS middleware to FastAPI
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Allow specific origins
+    allow_origins=[settings.ORIGINS],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers (authorization, etc.)
 )
 
 app.include_router(LoanerTechRouter, tags=["LoanerTech"], prefix="/loanertech")
+app.include_router(AuthRouter, tags=["Auth"], prefix="")
 
 
 @app.get("/", tags=["Root"])
