@@ -1,8 +1,10 @@
 import motor.motor_asyncio
 
-MONGO_DETAILS = "mongodb://localhost:27017"
+from server.config import get_settings  # Import settings from the appropriate module
 
-client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
+settings = get_settings()
+
+client = motor.motor_asyncio.AsyncIOMotorClient(settings.MONGO_DETAILS)
 
 database = client.apo_main
 
