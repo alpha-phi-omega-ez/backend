@@ -27,7 +27,7 @@ temp_codes = {}
 async def generate_temporary_code(user_email: str) -> str:
     # Generate a unique temporary code
     code = str(uuid4())
-    expires_at = datetime.now() + timedelta(minutes=10)  # expires in 1 minutes
+    expires_at = datetime.now() + timedelta(seconds=5)  # expires in 5 seconds
     temp_codes[code] = {"email": user_email, "expires_at": expires_at}
     return code
 
