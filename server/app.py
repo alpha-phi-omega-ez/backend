@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from server.routes.loanertech import router as LoanerTechRouter
-from server.routes.auth import router as AuthRouter
 from server.config import get_settings
+from server.routes.auth import router as AuthRouter
+from server.routes.loanertech import router as LoanerTechRouter
 
 app = FastAPI()
 settings = get_settings()
