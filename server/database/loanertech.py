@@ -18,9 +18,7 @@ async def get_next_sequence_value(sequence_name) -> int:
     # TODO: create initialize db script and add this
     # await loanertech_id_collection.insert_one({"_id": "loanertechid", "seq": 1})
     result = await loanertech_id_collection.find_one_and_update(
-        {"_id": sequence_name},
-        {"$inc": {"seq": 1}},
-        return_document=True
+        {"_id": sequence_name}, {"$inc": {"seq": 1}}, return_document=True
     )
     return result["seq"]
 
