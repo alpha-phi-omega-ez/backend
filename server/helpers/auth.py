@@ -11,8 +11,10 @@ settings = get_settings()
 temp_codes = {}
 blacklisted_tokens = set()
 
+
 class BlacklistedTokenException(Exception):
     pass
+
 
 async def generate_temporary_code(user_email: str) -> str:
     # Generate a unique temporary code
@@ -44,7 +46,7 @@ async def validate_code_and_get_user_email(code: str) -> str | None:
 async def validate_token(token: str):
     if token in blacklisted_tokens:
         raise BlacklistedTokenException
-    
+
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
     return payload
@@ -64,8 +66,10 @@ async def create_access_token(
     )
     return encoded_jwt
 
+
 async def blacklist_token(token: str) -> None:
     blacklisted_tokens.add(token)
+
 
 async def simple_auth_check(request: Request) -> tuple[bool, str, Any]:
     token = request.cookies.get("authToken")

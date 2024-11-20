@@ -14,6 +14,7 @@ def loanertech_helper(loanertech) -> dict:
         "name": loanertech["name"],
     }
 
+
 def loanertech_helper_unprotected(loanertech) -> dict:
     return {
         "id": loanertech["_id"],
@@ -40,6 +41,7 @@ async def retrieve_loanertechs_unauthenticated():
     async for loanertech in loanertech_collection.find():
         loanertechs.append(loanertech_helper_unprotected(loanertech))
     return loanertechs
+
 
 # Retrieve all students present in the database
 async def retrieve_loanertechs():

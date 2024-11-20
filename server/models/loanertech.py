@@ -2,6 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
+
 class LoanerTechCheckout(BaseModel):
     ids: list[int] = Field(...)
     phone_number: str = Field(..., max_length=12)
@@ -17,6 +18,7 @@ class LoanerTechCheckout(BaseModel):
                 "name": "Alfred Glump",
             }
         }
+
 
 class LoanerTechCheckin(BaseModel):
     ids: list[int] = Field(...)
