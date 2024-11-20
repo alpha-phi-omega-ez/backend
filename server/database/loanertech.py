@@ -11,6 +11,14 @@ def loanertech_helper(loanertech) -> dict:
         "description": loanertech["description"],
         "phone": loanertech["phone"],
         "email": loanertech["email"],
+        "name": loanertech["name"],
+    }
+
+def loanertech_helper_unprotected(loanertech) -> dict:
+    return {
+        "id": loanertech["_id"],
+        "in_office": loanertech["in_office"],
+        "description": loanertech["description"],
     }
 
 
@@ -20,8 +28,18 @@ async def get_next_sequence_value(sequence_name) -> int:
     result = await loanertech_id_collection.find_one_and_update(
         {"_id": sequence_name}, {"$inc": {"seq": 1}}, return_document=True
     )
+    if result is None:
+        await loanertech_id_collection.insert_one({"_id": sequence_name, "seq": 1})
+        result = {"seq": 1}
     return result["seq"]
 
+
+# Retrieve all students present in the database
+async def retrieve_loanertechs_unauthenticated():
+    loanertechs = []
+    async for loanertech in loanertech_collection.find():
+        loanertechs.append(loanertech_helper_unprotected(loanertech))
+    return loanertechs
 
 # Retrieve all students present in the database
 async def retrieve_loanertechs():
@@ -38,6 +56,7 @@ async def add_loanertech(loanertech_data: dict) -> dict:
     loanertech_data["in_office"] = True
     loanertech_data["phone"] = ""
     loanertech_data["email"] = ""
+    loanertech_data["name"] = ""
 
     loanertech = await loanertech_collection.insert_one(loanertech_data)
     new_loanertech = await loanertech_collection.find_one(
