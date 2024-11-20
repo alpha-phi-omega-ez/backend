@@ -1,11 +1,12 @@
 from typing import Any
 
 
-def ResponseModel(data: Any, message: str) -> dict[str, Any]:
+def ResponseModel(data: Any, message: str, authed: bool = False) -> dict[str, Any]:
     return {
         "data": data,
         "code": 200,
         "message": message,
+        "loggedIn": authed,
     }
 
 
