@@ -1,6 +1,6 @@
 import motor.motor_asyncio
 
-from server.config import get_settings  # Import settings from the appropriate module
+from server.config import get_settings
 
 settings = get_settings()
 
