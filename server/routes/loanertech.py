@@ -22,11 +22,7 @@ router = APIRouter()
 async def get_loanertechs(auth: Tuple[bool, str, Any] = Depends(simple_auth_check)):
     authenticated = auth[0]
 
-    loanertechs = []
-    if authenticated:
-        loanertechs = await retrieve_loanertechs()
-    else:
-        loanertechs = await retrieve_loanertechs_unauthenticated()
+    loanertechs = await retrieve_loanertechs() if authenticated else await retrieve_loanertechs_unauthenticated()
     if loanertechs:
         return ResponseModel(
             loanertechs, "LoanerTech data retrieved successfully", authenticated
@@ -36,7 +32,6 @@ async def get_loanertechs(auth: Tuple[bool, str, Any] = Depends(simple_auth_chec
 
 @router.post("/", response_description="LoanerTech data added into the database")
 async def add_loanertech_data(
-    request: Request,
     loanertech: LoanerTech = Body(...),
     auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
 ) -> dict[str, Any]:
