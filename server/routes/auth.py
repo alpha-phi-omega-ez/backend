@@ -7,7 +7,7 @@ from fastapi_sso.sso.google import GoogleSSO
 from starlette import status
 from starlette.requests import Request as StarletteRequest
 
-from server.config import get_settings
+from server.config import settings
 from server.helpers.auth import (
     BlacklistedTokenException,
     blacklist_token,
@@ -17,8 +17,6 @@ from server.helpers.auth import (
     validate_token,
 )
 from server.models.auth import TokenRequest
-
-settings = get_settings()
 
 google_sso = GoogleSSO(
     settings.GOOGLE_CLIENT_ID,

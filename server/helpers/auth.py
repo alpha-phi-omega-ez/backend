@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from uuid import uuid4
 
 import jwt
 from fastapi import Request
-from typing import Any
 
-from server.config import get_settings
+from server.config import settings
 
-settings = get_settings()
 temp_codes = {}
 blacklisted_tokens = set()
 
