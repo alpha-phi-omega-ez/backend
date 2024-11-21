@@ -1,10 +1,8 @@
-from typing import Any
+from typing import Any, Tuple
 
-import jwt
-from fastapi import APIRouter, Body, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 
-from server.config import get_settings
 from server.database.loanertech import (
     add_loanertech,
     delete_loanertech,
@@ -19,12 +17,10 @@ from server.models.loanertech import LoanerTech, LoanerTechCheckin, LoanerTechCh
 
 router = APIRouter()
 
-settings = get_settings()
-
 
 @router.get("/", response_description="LoanerTech list retrieved")
-async def get_loanertechs(request: Request):
-    authenticated, _, _ = await simple_auth_check(request)
+async def get_loanertechs(auth: Tuple[bool, str, Any] = Depends(simple_auth_check)):
+    authenticated = auth[0]
 
     loanertechs = []
     if authenticated:
@@ -40,9 +36,11 @@ async def get_loanertechs(request: Request):
 
 @router.post("/", response_description="LoanerTech data added into the database")
 async def add_loanertech_data(
-    request: Request, loanertech: LoanerTech = Body(...)
+    request: Request,
+    loanertech: LoanerTech = Body(...),
+    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
 ) -> dict[str, Any]:
-    authenticated, message, payload = await simple_auth_check(request)
+    authenticated, message, payload = auth
     if not authenticated:
         raise HTTPException(status_code=401, detail=message)
 
@@ -63,9 +61,11 @@ async def get_loanertech_data(id: int):
 
 @router.put("/update/{id}")
 async def update_loanertech_data(
-    request: Request, id: int, req: LoanerTech = Body(...)
+    id: int,
+    req: LoanerTech = Body(...),
+    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
 ):
-    authenticated, message, payload = await simple_auth_check(request)
+    authenticated, message, payload = auth
     if not authenticated:
         raise HTTPException(status_code=401, detail=message)
 
@@ -88,8 +88,10 @@ async def update_loanertech_data(
 @router.delete(
     "/delete/{id}", response_description="LoanerTech data deleted from the database"
 )
-async def delete_loanertech_data(request: Request, id: int):
-    authenticated, message, payload = await simple_auth_check(request)
+async def delete_loanertech_data(
+    id: int, auth: Tuple[bool, str, Any] = Depends(simple_auth_check)
+):
+    authenticated, message, payload = auth
     if not authenticated:
         raise HTTPException(status_code=401, detail=message)
 
@@ -106,16 +108,16 @@ async def delete_loanertech_data(request: Request, id: int):
 
 
 @router.put("/checkout")
-async def checkout_loanertech(request: Request, req: LoanerTechCheckout = Body(...)):
-    authenticated, message, _ = await simple_auth_check(request)
-    print(authenticated)
-    print(message)
+async def checkout_loanertech(
+    req: LoanerTechCheckout = Body(...),
+    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
+):
+    authenticated, message, _ = auth
+
     if not authenticated:
         raise HTTPException(status_code=401, detail=message)
 
     dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
-
-    print(dict_req)
 
     success = True
     ids = []
@@ -145,8 +147,11 @@ async def checkout_loanertech(request: Request, req: LoanerTechCheckout = Body(.
 
 
 @router.put("/checkin")
-async def checkin_loanertech(request: Request, req: LoanerTechCheckin = Body(...)):
-    authenticated, message, _ = await simple_auth_check(request)
+async def checkin_loanertech(
+    req: LoanerTechCheckin = Body(...),
+    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
+):
+    authenticated, message, _ = auth
     if not authenticated:
         raise HTTPException(status_code=401, detail=message)
 
