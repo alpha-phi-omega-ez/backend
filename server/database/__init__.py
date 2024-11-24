@@ -1,8 +1,6 @@
 import motor.motor_asyncio
 
-from server.config import get_settings
-
-settings = get_settings()
+from server.config import settings
 
 client = motor.motor_asyncio.AsyncIOMotorClient(settings.MONGO_DETAILS)
 
