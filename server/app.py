@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from server.config import settings
 from server.routes.auth import router as AuthRouter
 from server.routes.loanertech import router as LoanerTechRouter
+from server.routes.backtest import router as BacktestRouter
 
 app = FastAPI()
 
@@ -17,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(LoanerTechRouter, tags=["LoanerTech"], prefix="/loanertech")
+app.include_router(BacktestRouter, tags=["Backtests"], prefix="")
 app.include_router(AuthRouter, tags=["Auth"], prefix="")
 
 
