@@ -24,8 +24,6 @@ def loanertech_helper_unprotected(loanertech) -> dict:
 
 
 async def get_next_sequence_value(sequence_name) -> int:
-    # TODO: create initialize db script and add this
-    # await loanertech_id_collection.insert_one({"_id": "loanertechid", "seq": 1})
     result = await loanertech_id_collection.find_one_and_update(
         {"_id": sequence_name}, {"$inc": {"seq": 1}}, return_document=True
     )
@@ -35,7 +33,7 @@ async def get_next_sequence_value(sequence_name) -> int:
     return result["seq"]
 
 
-# Retrieve all students present in the database
+# Retrieve all loaner tech items present in the database with data for unauthenticated users
 async def retrieve_loanertechs_unauthenticated():
     loanertechs = []
     async for loanertech in loanertech_collection.find():
@@ -43,7 +41,7 @@ async def retrieve_loanertechs_unauthenticated():
     return loanertechs
 
 
-# Retrieve all students present in the database
+# Retrieve all loaner tech items present in the database with data for authenticated users
 async def retrieve_loanertechs():
     loanertechs = []
     async for loanertech in loanertech_collection.find():
@@ -51,7 +49,7 @@ async def retrieve_loanertechs():
     return loanertechs
 
 
-# Add a new student into to the database
+# Add a new loanertech item into to the database
 async def add_loanertech(loanertech_data: dict) -> dict:
     # Add the ID to the loanertech data
     loanertech_data["_id"] = await get_next_sequence_value("loanertechid")
@@ -67,25 +65,25 @@ async def add_loanertech(loanertech_data: dict) -> dict:
     return loanertech_helper(new_loanertech)
 
 
-# Retrieve a student with a matching ID
+# Retrieve a loanertech item with a matching ID
 async def retrieve_loanertech(id: int):
-    student = await loanertech_collection.find_one({"_id": id})
-    if student:
-        return loanertech_helper(student)
+    loanertech = await loanertech_collection.find_one({"_id": id})
+    if loanertech:
+        return loanertech_helper(loanertech)
     return None
 
 
-# Update a student with a matching ID
+# Update a loanertech item with a matching ID
 async def update_loanertech(id: int, data: dict):
     # Return false if an empty request body is sent.
     if len(data) < 1:
         return False
-    student = await loanertech_collection.find_one({"_id": id})
-    if student:
-        updated_student = await loanertech_collection.update_one(
+    loanertech = await loanertech_collection.find_one({"_id": id})
+    if loanertech:
+        updated_loanertech = await loanertech_collection.update_one(
             {"_id": id}, {"$set": data}
         )
-        if updated_student:
+        if updated_loanertech:
             return True
     return False
 
