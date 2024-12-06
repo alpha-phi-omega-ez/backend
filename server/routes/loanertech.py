@@ -22,7 +22,11 @@ router = APIRouter()
 async def get_loanertechs(auth: Tuple[bool, str, Any] = Depends(simple_auth_check)):
     authenticated = auth[0]
 
-    loanertechs = await retrieve_loanertechs() if authenticated else await retrieve_loanertechs_unauthenticated()
+    loanertechs = (
+        await retrieve_loanertechs()
+        if authenticated
+        else await retrieve_loanertechs_unauthenticated()
+    )
     if loanertechs:
         return ResponseModel(
             loanertechs, "LoanerTech data retrieved successfully", authenticated

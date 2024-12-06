@@ -1,9 +1,12 @@
 from server.database import database
 from typing import List
 
-backtest_course_code_collection = database.get_collection("backtest_course_code_collection")
+backtest_course_code_collection = database.get_collection(
+    "backtest_course_code_collection"
+)
 backtest_courses_collection = database.get_collection("backtest_courses_collection")
 backtest_collection = database.get_collection("backtest_collection")
+
 
 def course_helper(course) -> dict:
     return {
@@ -19,6 +22,7 @@ async def retrieve_coursecodes() -> List[str]:
     async for course_code in backtest_course_code_collection.find():
         course_codes.append(course_code["code"])
     return course_codes
+
 
 async def retrieve_courses(course_code: str) -> List[dict]:
     if course_code == "BIOL":
@@ -40,13 +44,17 @@ async def retrieve_courses(course_code: str) -> List[dict]:
         return [
             {"id": "7", "name": "1010 Physics 1"},
             {"id": "8", "name": "1020 Physics 2"},
-            {"id": "9", "name": "9999 This class has an absurdly long name because RPI is stupid sometimes"},
+            {
+                "id": "9",
+                "name": "9999 This class has an absurdly long name because RPI is stupid sometimes",
+            },
         ]
     return []
     courses = []
     async for course in backtest_courses_collection.find({"code": course_code}):
         courses.append(course_helper(course))
     return courses
+
 
 async def retrieve_backtest(backtest_id: str) -> List[dict]:
     return [
