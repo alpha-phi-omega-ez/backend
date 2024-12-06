@@ -7,3 +7,4 @@ client = motor.motor_asyncio.AsyncIOMotorClient(settings.MONGO_DETAILS)
 database = client.apo_main
 
 import server.database.loanertech
+import server.database.backtest
