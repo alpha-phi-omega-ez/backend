@@ -1,6 +1,6 @@
 from typing import Any, Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 
 from server.database.loanertech import (
