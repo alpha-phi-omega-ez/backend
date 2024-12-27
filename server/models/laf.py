@@ -3,7 +3,7 @@ from enum import Enum
 from pydantic import BaseModel, EmailStr, Field, constr
 
 
-class NewLAFItem(BaseModel):
+class LAFItem(BaseModel):
     type: str = Field(...)
     location: str = Field(...)
     description: str = Field(...)
@@ -20,7 +20,12 @@ class NewLAFItem(BaseModel):
         }
 
 
-class NewLostReport(BaseModel):
+class LAFFoundItem(BaseModel):
+    name: str = Field(...)
+    email: EmailStr = Field(...)
+
+
+class LostReport(BaseModel):
     type: str = Field(...)
     name: str = Field(...)
     email: EmailStr = Field(...)

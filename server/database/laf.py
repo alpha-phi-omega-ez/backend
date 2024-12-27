@@ -84,7 +84,7 @@ async def add_laf(laf_data: dict) -> dict:
     laf_data["updated"] = now
     laf_data["name"] = ""
     laf_data["email"] = ""
-    laf_data["returned"] = ""
+    laf_data["returned"] = now
 
     laf_item = await laf_items_collection.insert_one(laf_data)
     new_laf_item = await laf_items_collection.find_one({"_id": laf_item.inserted_id})
@@ -133,6 +133,26 @@ async def retrieve_laf_items(laf_query_data: dict) -> list:
     async for laf_item in laf_items_collection.find(query).sort("date", -1).limit(30):
         laf_items.append(await laf_helper(laf_item))
     return laf_items
+
+
+async def found_laf_item(laf_id: str, laf_found: dict) -> dict | None:
+    now = datetime.now()
+    laf_item = await laf_items_collection.find_one({"_id": int(laf_id)})
+    if laf_item is None:
+        return None
+
+    laf_found["found"] = True
+    laf_found["archived"] = False
+    laf_found["updated"] = now
+    laf_found["returned"] = now
+
+    updated_laf_item = await laf_items_collection.update_one(
+        {"_id": int(laf_id)}, {"$set": laf_found}
+    )
+    if updated_laf_item.modified_count == 1:
+        return await laf_helper(laf_item)
+
+    return None
 
 
 lost_report_query_mapping = {

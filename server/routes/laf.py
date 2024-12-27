@@ -1,3 +1,4 @@
+from tkinter import E
 from typing import Any, List, Optional, Tuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -14,6 +15,7 @@ from server.database.laf import (
     retrieve_laf_locations,
     retrieve_laf_types,
     retrieve_lost_reports,
+    found_laf_item,
 )
 from server.helpers.auth import simple_auth_check
 from server.models import ErrorResponseModel, ResponseModel
@@ -22,8 +24,9 @@ from server.models.laf import (
     DateString,
     LAFLocation,
     LAFType,
-    NewLAFItem,
-    NewLostReport,
+    LAFItem,
+    LAFFoundItem,
+    LostReport,
 )
 
 router = APIRouter()
@@ -47,7 +50,7 @@ async def get_laf_locations() -> dict[str, Any]:
 
 @router.post("/item/", response_description="Created a new LAF item")
 async def new_laf_item(
-    laf_item: NewLAFItem = Body(...),
+    laf_item: LAFItem = Body(...),
     auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
 ) -> dict[str, Any]:
     authenticated, message, _ = auth
@@ -61,7 +64,7 @@ async def new_laf_item(
 
 @router.post("/report/", response_description="Created a new Lost Report")
 async def new_lost_report(
-    lost_report: NewLostReport = Body(...),
+    lost_report: LostReport = Body(...),
     auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
 ) -> dict[str, Any]:
     authenticated, _, _ = auth
@@ -189,3 +192,22 @@ async def get_lost_reports(
     }
     lost_reports = await retrieve_lost_reports(dict_lost_report_filters)
     return ResponseModel(lost_reports, "Retrieved Lost Reports")
+
+
+@router.put(f"/item/found/{id}", response_description="Found a LAF item")
+async def found_laf_item_route(
+    id: str,
+    laf_found: LAFFoundItem = Body(...),
+    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
+) -> dict[str, Any]:
+    authenticated, message, _ = auth
+    if not authenticated:
+        raise HTTPException(status_code=401, detail=message)
+
+    laf_found_dict = jsonable_encoder(laf_found)
+    updated_laf_item = await found_laf_item(id, laf_found_dict)
+    if updated_laf_item:
+        return ResponseModel(updated_laf_item, "LAF item updated successfully")
+    return ErrorResponseModel(
+        "Failed to update LAF item", 404, "Failed to update LAF item"
+    )
