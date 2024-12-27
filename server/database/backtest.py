@@ -1,6 +1,7 @@
-from server.database import database
-from typing import List
 from datetime import datetime, timedelta
+from typing import List
+
+from server.database import database
 
 backtest_course_code_collection = database.get_collection(
     "backtest_course_code_collection"
@@ -28,7 +29,7 @@ async def retrieve_coursecodes() -> List[str]:
     course_codes = []
     async for course_code in backtest_course_code_collection.find():
         course_codes.append(course_code["code"])
-    
+
     course_code_cache["datetime"] = datetime.now()
     course_code_cache["data"] = course_codes
     return course_codes
@@ -60,12 +61,14 @@ async def retrieve_courses(course_code: str) -> List[dict]:
             },
         ]
     return []
-    if courses_cache.get(course_code) and courses_cache[course_code]["datetime"] > datetime.now() - timedelta(hours=24):
+    if courses_cache.get(course_code) and courses_cache[course_code][
+        "datetime"
+    ] > datetime.now() - timedelta(hours=24):
         return courses_cache[course_code]["data"]
     courses = []
     async for course in backtest_courses_collection.find({"code": course_code}):
         courses.append(course_helper(course))
-    
+
     courses_cache[course_code] = {"datetime": datetime.now(), "data": courses}
     return courses
 
@@ -78,11 +81,16 @@ async def retrieve_backtest(backtest_id: str) -> List[dict]:
         {"type": "exam 2", "tests": ["Fall 2019", "Fall 2022", "Fall 2024"]},
         {"type": "exam 3", "tests": ["Fall 2019", "Fall 2022", "Fall 2024"]},
     ]
-    if backtest_cache.get(backtest_id) and courses_cache[backtest_id]["datetime"] > datetime.now() - timedelta(hours=24):
+    if backtest_cache.get(backtest_id) and courses_cache[backtest_id][
+        "datetime"
+    ] > datetime.now() - timedelta(hours=24):
         return courses_cache[backtest_id]["data"]
     backtest = await backtest_collection.find_one({"_id": backtest_id})
     if backtest:
         backtest_response = backtest["tests"]
-        backtest_cache[backtest_id] = {"datetime": datetime.now(), "data": backtest_response}
+        backtest_cache[backtest_id] = {
+            "datetime": datetime.now(),
+            "data": backtest_response,
+        }
         return backtest_response
     return []
