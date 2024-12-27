@@ -12,5 +12,5 @@ import server.database.loanertech
 from server.database.laf import laf_db_setup
 
 
-async def db_setup():
+async def db_setup() -> None:
     await laf_db_setup()
