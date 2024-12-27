@@ -51,7 +51,7 @@ async def add_loanertech_data(
 
 
 @router.get("/{id}", response_description="LoanerTech data retrieved")
-async def get_loanertech_data(id: int):
+async def get_loanertech_data(id: int) -> dict[str, Any]:
     loanertech = await retrieve_loanertech(id)
     if loanertech:
         return ResponseModel(loanertech, "LoanerTech data retrieved successfully")
@@ -63,14 +63,16 @@ async def update_loanertech_data(
     id: int,
     req: LoanerTech = Body(...),
     auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
-):
+) -> dict[str, Any]:
     authenticated, message, payload = auth
     if not authenticated:
         raise HTTPException(status_code=401, detail=message)
 
     print(payload)
 
-    dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
+    # dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
+    dict_req = jsonable_encoder(req)
+
     updated_loanertech = await update_loanertech(id, dict_req)
     if updated_loanertech:
         return ResponseModel(
@@ -89,7 +91,7 @@ async def update_loanertech_data(
 )
 async def delete_loanertech_data(
     id: int, auth: Tuple[bool, str, Any] = Depends(simple_auth_check)
-):
+) -> dict[str, Any]:
     authenticated, message, payload = auth
     if not authenticated:
         raise HTTPException(status_code=401, detail=message)
@@ -110,13 +112,14 @@ async def delete_loanertech_data(
 async def checkout_loanertech(
     req: LoanerTechCheckout = Body(...),
     auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
-):
+) -> dict[str, Any]:
     authenticated, message, _ = auth
 
     if not authenticated:
         raise HTTPException(status_code=401, detail=message)
 
-    dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
+    # dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
+    dict_req = jsonable_encoder(req)
 
     success = True
     ids = []
@@ -149,12 +152,13 @@ async def checkout_loanertech(
 async def checkin_loanertech(
     req: LoanerTechCheckin = Body(...),
     auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
-):
+) -> dict[str, Any]:
     authenticated, message, _ = auth
     if not authenticated:
         raise HTTPException(status_code=401, detail=message)
 
-    dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
+    # dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
+    dict_req = jsonable_encoder(req)
 
     success = True
     ids = []

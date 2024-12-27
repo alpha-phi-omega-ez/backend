@@ -3,9 +3,9 @@ from typing import Any
 from fastapi import APIRouter
 
 from server.database.backtest import (
+    retrieve_backtest,
     retrieve_coursecodes,
     retrieve_courses,
-    retrieve_backtest,
 )
 from server.models import ResponseModel
 
