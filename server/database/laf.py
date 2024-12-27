@@ -107,6 +107,44 @@ async def add_lost_report(lost_report_data: dict, auth: bool) -> dict:
     return await lost_report_helper(new_lost_report)
 
 
+async def update_lost_report(
+    lost_report_id: str, lost_report_data: dict, now: datetime
+) -> dict | None:
+    lost_report = await lost_reports_collection.find_one({"_id": lost_report_id})
+    if lost_report is None:
+        return None
+
+    lost_report_data["updated"] = now
+
+    updated_lost_report = await lost_reports_collection.update_one(
+        {"_id": lost_report_id}, {"$set": lost_report_data}
+    )
+    if updated_lost_report.modified_count == 1:
+        return await lost_report_helper(lost_report_data)
+
+    return None
+
+
+async def found_lost_report(lost_report_id: str) -> dict | None:
+    now = datetime.now()
+
+    lost_report_found = {
+        "found": True,
+        "archived": True,
+        "returned": now,
+    }
+
+    return await update_lost_report(lost_report_id, lost_report_found, now)
+
+
+async def update_lost_report_item(
+    lost_report_id: str, lost_report_data: dict
+) -> dict | None:
+    now = datetime.now()
+
+    return await update_lost_report(lost_report_id, lost_report_data, now)
+
+
 laf_item_query_mapping = {
     "dateFilter": lambda v, laf_query_data: (
         {"date": {"$lte": laf_query_data["date"]}}
@@ -135,24 +173,36 @@ async def retrieve_laf_items(laf_query_data: dict) -> list:
     return laf_items
 
 
-async def found_laf_item(laf_id: str, laf_found: dict) -> dict | None:
-    now = datetime.now()
+async def update_laf(laf_id: str, laf_data: dict, now: datetime) -> dict | None:
     laf_item = await laf_items_collection.find_one({"_id": int(laf_id)})
     if laf_item is None:
         return None
 
-    laf_found["found"] = True
-    laf_found["archived"] = False
-    laf_found["updated"] = now
-    laf_found["returned"] = now
+    laf_data["updated"] = now
 
     updated_laf_item = await laf_items_collection.update_one(
-        {"_id": int(laf_id)}, {"$set": laf_found}
+        {"_id": int(laf_id)}, {"$set": laf_data}
     )
     if updated_laf_item.modified_count == 1:
-        return await laf_helper(laf_item)
+        return await laf_helper(laf_data)
 
     return None
+
+
+async def found_laf_item(laf_id: str, laf_found: dict) -> dict | None:
+    now = datetime.now()
+
+    laf_found["found"] = True
+    laf_found["archived"] = True
+    laf_found["returned"] = now
+
+    return await update_laf(laf_id, laf_found, now)
+
+
+async def update_laf_item(laf_id: str, laf_data: dict) -> dict | None:
+    now = datetime.now()
+
+    return await update_laf(laf_id, laf_data, now)
 
 
 lost_report_query_mapping = {

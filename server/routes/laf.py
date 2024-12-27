@@ -16,6 +16,9 @@ from server.database.laf import (
     retrieve_laf_types,
     retrieve_lost_reports,
     found_laf_item,
+    update_laf_item,
+    found_lost_report,
+    update_lost_report_item,
 )
 from server.helpers.auth import simple_auth_check
 from server.models import ErrorResponseModel, ResponseModel
@@ -194,7 +197,7 @@ async def get_lost_reports(
     return ResponseModel(lost_reports, "Retrieved Lost Reports")
 
 
-@router.put(f"/item/found/{id}", response_description="Found a LAF item")
+@router.put("/item/found/{id}", response_description="Found a LAF item")
 async def found_laf_item_route(
     id: str,
     laf_found: LAFFoundItem = Body(...),
@@ -210,4 +213,59 @@ async def found_laf_item_route(
         return ResponseModel(updated_laf_item, "LAF item updated successfully")
     return ErrorResponseModel(
         "Failed to update LAF item", 404, "Failed to update LAF item"
+    )
+
+
+@router.put("/item/{id}", response_description="Update a LAF item")
+async def update_laf_item_route(
+    id: str,
+    laf_item: LAFItem = Body(...),
+    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
+) -> dict[str, Any]:
+    authenticated, message, _ = auth
+    if not authenticated:
+        raise HTTPException(status_code=401, detail=message)
+
+    dict_laf = jsonable_encoder(laf_item)
+    updated_laf_item = await update_laf_item(id, dict_laf)
+    if updated_laf_item:
+        return ResponseModel(updated_laf_item, "LAF item updated successfully")
+    return ErrorResponseModel(
+        "Failed to update LAF item", 404, "Failed to update LAF item"
+    )
+
+
+@router.put("/report/found/{id}", response_description="Found a Lost Report")
+async def found_lost_report_route(
+    id: str,
+    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
+) -> dict[str, Any]:
+    authenticated, message, _ = auth
+    if not authenticated:
+        raise HTTPException(status_code=401, detail=message)
+
+    updated_lost_report = await found_lost_report(id)
+    if updated_lost_report:
+        return ResponseModel(updated_lost_report, "Lost Report updated successfully")
+    return ErrorResponseModel(
+        "Failed to update Lost Report", 404, "Failed to update Lost Report"
+    )
+
+
+@router.put("/report/{id}", response_description="Update a Lost Report")
+async def update_lost_report_route(
+    id: str,
+    lost_report: LostReport = Body(...),
+    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
+) -> dict[str, Any]:
+    authenticated, message, _ = auth
+    if not authenticated:
+        raise HTTPException(status_code=401, detail=message)
+
+    dict_lost_report = jsonable_encoder(lost_report)
+    updated_lost_report = await update_lost_report_item(id, dict_lost_report)
+    if updated_lost_report:
+        return ResponseModel(updated_lost_report, "Lost Report updated successfully")
+    return ErrorResponseModel(
+        "Failed to update Lost Report", 404, "Failed to update Lost Report"
     )
