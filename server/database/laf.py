@@ -16,13 +16,14 @@ laf_type_cache = {"datetime": datetime(1970, 1, 1), "data": []}
 laf_locations_cache = {"datetime": datetime(1970, 1, 1), "data": []}
 
 
-async def laf_db_setup():
+async def laf_db_setup() -> None:
     await laf_items_collection.create_index("date")
     await lost_reports_collection.create_index("date")
     await laf_items_collection.create_index([("description", "text")])
     await lost_reports_collection.create_index([("description", "text")])
 
 
+# Helper functions to convert MongoDB documents to Python dictionaries
 async def laf_helper(laf) -> dict:
     date = laf["date"]
     return {
@@ -73,6 +74,9 @@ async def get_next_sequence_value(sequence_name) -> int:
     return result["seq"]
 
 
+# LAF Queries
+
+
 # Add a new laf item into to the database
 async def add_laf(laf_data: dict) -> dict:
     now = datetime.now()
@@ -89,6 +93,82 @@ async def add_laf(laf_data: dict) -> dict:
     laf_item = await laf_items_collection.insert_one(laf_data)
     new_laf_item = await laf_items_collection.find_one({"_id": laf_item.inserted_id})
     return await laf_helper(new_laf_item)
+
+
+async def update_laf(laf_id: str, laf_data: dict, now: datetime) -> dict | None:
+    laf_item = await laf_items_collection.find_one({"_id": int(laf_id)})
+    if laf_item is None:
+        return None
+
+    laf_data["updated"] = now
+
+    updated_laf_item = await laf_items_collection.update_one(
+        {"_id": int(laf_id)}, {"$set": laf_data}
+    )
+    if updated_laf_item.modified_count == 1:
+        return await laf_helper(laf_data)
+
+    return None
+
+
+async def found_laf_item(laf_id: str, laf_found: dict) -> dict | None:
+    now = datetime.now()
+
+    laf_found["found"] = True
+    laf_found["archived"] = True
+    laf_found["returned"] = now
+
+    return await update_laf(laf_id, laf_found, now)
+
+
+async def update_laf_item(laf_id: str, laf_data: dict) -> dict | None:
+    now = datetime.now()
+
+    return await update_laf(laf_id, laf_data, now)
+
+
+laf_item_query_mapping = {
+    "dateFilter": lambda v, laf_query_data: (
+        {"date": {"$lte": laf_query_data["date"]}}
+        if v == "Before"
+        else {"date": {"$gte": laf_query_data["date"]}}
+    ),
+    "location": lambda v, _: {"location": {"$in": v}},
+    "type": lambda v, _: {"type": v},
+    "description": lambda v, _: {
+        "description": {"$regex": re.escape(v), "$options": "i"}
+    },
+}
+
+
+# Retrieve all relevant laf items from the database
+async def retrieve_laf_items(laf_query_data: dict) -> list:
+    query = {"archived": False, "found": False}
+    async for k, v in async_dict_itr(laf_query_data):
+        if v is not None and k in laf_item_query_mapping:
+            query.update(laf_item_query_mapping[k](v, laf_query_data))
+
+    laf_items = []
+    # Use .skip before limit for pagination
+    async for laf_item in laf_items_collection.find(query).sort("date", -1).limit(30):
+        laf_items.append(await laf_helper(laf_item))
+    return laf_items
+
+
+async def retrieve_laf_archived(laf_query_data: dict) -> list:
+    query = {"archived": True}
+    async for k, v in async_dict_itr(laf_query_data):
+        if v is not None and k in laf_item_query_mapping:
+            query.update(laf_item_query_mapping[k](v, laf_query_data))
+
+    laf_items = []
+    # Use .skip before limit for pagination
+    async for laf_item in laf_items_collection.find(query).sort("date", -1).limit(30):
+        laf_items.append(await laf_archived_helper(laf_item))
+    return laf_items
+
+
+# Lost Report Queries
 
 
 # Add a new lost report into to the database
@@ -145,66 +225,6 @@ async def update_lost_report_item(
     return await update_lost_report(lost_report_id, lost_report_data, now)
 
 
-laf_item_query_mapping = {
-    "dateFilter": lambda v, laf_query_data: (
-        {"date": {"$lte": laf_query_data["date"]}}
-        if v == "Before"
-        else {"date": {"$gte": laf_query_data["date"]}}
-    ),
-    "location": lambda v, _: {"location": {"$in": v}},
-    "type": lambda v, _: {"type": v},
-    "description": lambda v, _: {
-        "description": {"$regex": re.escape(v), "$options": "i"}
-    },
-}
-
-
-# Retrieve all relevant laf items from the database
-async def retrieve_laf_items(laf_query_data: dict) -> list:
-    query = {"archived": False, "found": False}
-    async for k, v in async_dict_itr(laf_query_data):
-        if v is not None and k in laf_item_query_mapping:
-            query.update(laf_item_query_mapping[k](v, laf_query_data))
-
-    laf_items = []
-    # Use .skip before limit for pagination
-    async for laf_item in laf_items_collection.find(query).sort("date", -1).limit(30):
-        laf_items.append(await laf_helper(laf_item))
-    return laf_items
-
-
-async def update_laf(laf_id: str, laf_data: dict, now: datetime) -> dict | None:
-    laf_item = await laf_items_collection.find_one({"_id": int(laf_id)})
-    if laf_item is None:
-        return None
-
-    laf_data["updated"] = now
-
-    updated_laf_item = await laf_items_collection.update_one(
-        {"_id": int(laf_id)}, {"$set": laf_data}
-    )
-    if updated_laf_item.modified_count == 1:
-        return await laf_helper(laf_data)
-
-    return None
-
-
-async def found_laf_item(laf_id: str, laf_found: dict) -> dict | None:
-    now = datetime.now()
-
-    laf_found["found"] = True
-    laf_found["archived"] = True
-    laf_found["returned"] = now
-
-    return await update_laf(laf_id, laf_found, now)
-
-
-async def update_laf_item(laf_id: str, laf_data: dict) -> dict | None:
-    now = datetime.now()
-
-    return await update_laf(laf_id, laf_data, now)
-
-
 lost_report_query_mapping = {
     "dateFilter": lambda v, lost_report_query_data: (
         {"date": {"$lte": lost_report_query_data["date"]}}
@@ -221,20 +241,22 @@ lost_report_query_mapping = {
 }
 
 
-# Retrieve all relevant laf items from the database
-async def retrieve_lost_reports(lost_report_query_data: dict) -> list:
-    query = {"archived": False, "found": False}
+# Retrieve all relevant lost reports from the database
+async def retrieve_lost_reports(
+    lost_report_query_data: dict, archived: bool = False
+) -> list:
+    query = {"archived": archived}
     async for k, v in async_dict_itr(lost_report_query_data):
         if v is not None and k in lost_report_query_mapping:
             query.update(lost_report_query_mapping[k](v, lost_report_query_data))
 
-    laf_items = []
+    lost_reports = []
     # Use .skip before limit for pagination
     async for laf_item in (
         lost_reports_collection.find(query).sort("date", -1).limit(30)
     ):
-        laf_items.append(await lost_report_helper(laf_item))
-    return laf_items
+        lost_reports.append(await lost_report_helper(laf_item))
+    return lost_reports
 
 
 async def retrieve_laf_types() -> List[str]:
