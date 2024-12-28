@@ -87,7 +87,7 @@ async def exchange_code_for_token(token: TokenRequest = Body(...)):
         httponly=True,  # Prevent JavaScript access
         secure=secure,  # Use HTTPS in production
         samesite="strict",  # Prevent cross-site requests
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
     return response
 
