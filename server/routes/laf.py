@@ -1,4 +1,3 @@
-from tkinter import E
 from typing import Any, List, Optional, Tuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
