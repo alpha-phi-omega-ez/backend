@@ -161,7 +161,7 @@ laf_item_query_mapping = {
 
 # Retrieve all relevant laf items from the database
 async def retrieve_laf_items(laf_query_data: dict) -> list:
-    query = {}
+    query = {"archived": False, "found": False}
     async for k, v in async_dict_itr(laf_query_data):
         if v is not None and k in laf_item_query_mapping:
             query.update(laf_item_query_mapping[k](v, laf_query_data))
@@ -223,7 +223,7 @@ lost_report_query_mapping = {
 
 # Retrieve all relevant laf items from the database
 async def retrieve_lost_reports(lost_report_query_data: dict) -> list:
-    query = {}
+    query = {"archived": False, "found": False}
     async for k, v in async_dict_itr(lost_report_query_data):
         if v is not None and k in lost_report_query_mapping:
             query.update(lost_report_query_mapping[k](v, lost_report_query_data))
