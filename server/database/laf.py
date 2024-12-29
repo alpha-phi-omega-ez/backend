@@ -1,4 +1,5 @@
 import re
+from asyncio import gather
 from datetime import datetime, timedelta
 from typing import List
 
@@ -10,6 +11,7 @@ lost_reports_collection = database.get_collection("lost_reports_collection")
 laf_id_collection = database.get_collection("laf_id_collection")
 laf_types_collection = database.get_collection("laf_types")
 laf_locations_collection = database.get_collection("laf_locations")
+laf_matching_collection = database.get_collection("laf_matching")
 
 
 laf_type_cache = {"datetime": datetime(1970, 1, 1), "data": []}
@@ -142,8 +144,8 @@ laf_item_query_mapping = {
 
 
 # Retrieve all relevant laf items from the database
-async def retrieve_laf_items(laf_query_data: dict) -> list:
-    query = {"archived": False, "found": False}
+async def retrieve_laf_items(laf_query_data: dict, archived: bool = False) -> list:
+    query = {"archived": archived}
     async for k, v in async_dict_itr(laf_query_data):
         if v is not None and k in laf_item_query_mapping:
             query.update(laf_item_query_mapping[k](v, laf_query_data))
@@ -151,21 +153,133 @@ async def retrieve_laf_items(laf_query_data: dict) -> list:
     laf_items = []
     # Use .skip before limit for pagination
     async for laf_item in laf_items_collection.find(query).sort("date", -1).limit(30):
-        laf_items.append(await laf_helper(laf_item))
+        if archived:
+            laf_items.append(await laf_archived_helper(laf_item))
+        else:
+            laf_items.append(await laf_helper(laf_item))
     return laf_items
 
 
-async def retrieve_laf_archived(laf_query_data: dict) -> list:
-    query = {"archived": True}
-    async for k, v in async_dict_itr(laf_query_data):
-        if v is not None and k in laf_item_query_mapping:
-            query.update(laf_item_query_mapping[k](v, laf_query_data))
+type_expiration_mapping = {
+    "Water Bottle": lambda wb, c, u, now: {
+        "type": "Water Bottle",
+        "date": {"$lte": now - timedelta(days=wb)},
+    },
+    "Apparel": lambda wb, c, u, now: {
+        "type": "Apparel",
+        "date": {"$lte": now - timedelta(days=c)},
+    },
+    "Umbrella": lambda wb, c, u, now: {
+        "type": "Umbrella",
+        "date": {"$lte": now - timedelta(days=u)},
+    },
+}
 
-    laf_items = []
-    # Use .skip before limit for pagination
-    async for laf_item in laf_items_collection.find(query).sort("date", -1).limit(30):
-        laf_items.append(await laf_archived_helper(laf_item))
-    return laf_items
+
+async def fetch_expired_laf_items(expired_query: dict) -> List[dict]:
+    expired_laf_items = []
+    async for laf_item in laf_items_collection.find(expired_query).sort("date", -1):
+        expired_laf_items.append(await laf_helper(laf_item))
+
+    return expired_laf_items
+
+
+async def fetch_potentially_expired_laf_items(
+    potentially_expired_query: dict,
+) -> List[dict]:
+    potentially_expired_laf_items = []
+    async for laf_item in laf_items_collection.find(potentially_expired_query).sort(
+        "date", -1
+    ):
+        potentially_expired_laf_items.append(await laf_helper(laf_item))
+
+    return potentially_expired_laf_items
+
+
+async def retrieve_expired_laf(
+    water_bottle_expiration: int,
+    clothing_expiration: int,
+    umbrella_expiration: int,
+    inexpensive_expiration: int,
+    expensive_expiration: int,
+    type: str,
+) -> dict[str, list]:
+    now = datetime.now()
+
+    if type == "Any":
+
+        expired_query = {
+            "archived": False,
+            "$or": [
+                {
+                    "type": "Water Bottle",
+                    "date": {"$lte": now - timedelta(days=water_bottle_expiration)},
+                },
+                {
+                    "type": "Apparel",
+                    "date": {"$lte": now - timedelta(days=clothing_expiration)},
+                },
+                {
+                    "type": "Umbrella",
+                    "date": {"$lte": now - timedelta(days=umbrella_expiration)},
+                },
+                {
+                    "type": {"$nin": list(type_expiration_mapping.keys())},
+                    "date": {"$lte": now - timedelta(days=expensive_expiration)},
+                },
+            ],
+        }
+
+        potentially_expired_query = {
+            "archived": False,
+            "date": {"$lte": now - timedelta(days=inexpensive_expiration)},
+        }
+
+        expired_laf_items, potentially_expired_laf_items = await gather(
+            fetch_expired_laf_items(expired_query),
+            fetch_potentially_expired_laf_items(potentially_expired_query),
+        )
+
+        return {
+            "expired": expired_laf_items,
+            "potential": potentially_expired_laf_items,
+        }
+
+    if type in type_expiration_mapping:
+        query = {"archived": False}
+        query.update(
+            laf_item_query_mapping[type](
+                water_bottle_expiration, clothing_expiration, umbrella_expiration, now
+            )
+        )
+
+        laf_items = []
+        async for laf_item in laf_items_collection.find(query).sort("date", -1):
+            laf_items.append(await laf_helper(laf_item))
+
+        return {
+            "expired": laf_items,
+            "potential": [],
+        }
+
+    expired_query = {
+        "archived": False,
+        "date": {"$lte": now - timedelta(days=expensive_expiration)},
+    }
+    potentially_expired_query = {
+        "archived": False,
+        "date": {"$lte": now - timedelta(days=inexpensive_expiration)},
+    }
+
+    expired_laf_items, potentially_expired_laf_items = await gather(
+        fetch_expired_laf_items(expired_query),
+        fetch_potentially_expired_laf_items(potentially_expired_query),
+    )
+
+    return {
+        "expired": expired_laf_items,
+        "potential": potentially_expired_laf_items,
+    }
 
 
 # Lost Report Queries
@@ -260,7 +374,15 @@ async def retrieve_lost_reports(
 
 
 async def retrieve_laf_types() -> List[str]:
-    return ["Apparel", "Books", "Electronics", "Miscellaneous"]
+    return [
+        "Apparel",
+        "Books",
+        "Electronics",
+        "Miscellaneous",
+        "Water Bottle",
+        "Umbrella",
+        "Jewelery",
+    ]
     now = datetime.now()
     if laf_type_cache["datetime"] > now - timedelta(hours=24):
         return laf_type_cache["data"]
