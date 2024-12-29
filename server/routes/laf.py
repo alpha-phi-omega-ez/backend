@@ -10,13 +10,14 @@ from server.database.laf import (
     add_lost_report,
     delete_laf_location,
     delete_laf_type,
+    found_laf_item,
+    found_lost_report,
+    retrieve_expired_laf,
     retrieve_laf_items,
     retrieve_laf_locations,
     retrieve_laf_types,
     retrieve_lost_reports,
-    found_laf_item,
     update_laf_item,
-    found_lost_report,
     update_lost_report_item,
 )
 from server.helpers.auth import simple_auth_check
@@ -24,10 +25,10 @@ from server.models import ErrorResponseModel, ResponseModel
 from server.models.laf import (
     DateFilter,
     DateString,
+    LAFFoundItem,
+    LAFItem,
     LAFLocation,
     LAFType,
-    LAFItem,
-    LAFFoundItem,
     LostReport,
 )
 
@@ -53,7 +54,9 @@ async def new_laf_type(
 
     dict_laf_type = jsonable_encoder(laf_type)
     new_type = await add_laf_type(dict_laf_type["type"])
-    return ResponseModel(new_type, "LAF type added successfully")
+    if new_type:
+        return ResponseModel(new_type, "LAF type added successfully")
+    return ErrorResponseModel("Failed to add LAF type", 500, "Failed to add LAF type")
 
 
 @router.delete("/type/", response_description="Delete a LAF type")
@@ -92,7 +95,11 @@ async def new_laf_location(
 
     dict_laf_location = jsonable_encoder(laf_location)
     new_location = await add_laf_location(dict_laf_location["location"])
-    return ResponseModel(new_location, "LAF location added successfully")
+    if new_location:
+        return ResponseModel(new_location, "LAF location added successfully")
+    return ErrorResponseModel(
+        "Failed to add LAF location", 500, "Failed to add LAF location"
+    )
 
 
 @router.delete("/location/", response_description="Delete a LAF location")
@@ -123,7 +130,9 @@ async def new_laf_item(
 
     dict_laf = jsonable_encoder(laf_item)
     new_laf_item = await add_laf(dict_laf)
-    return ResponseModel(new_laf_item, "LAF added successfully")
+    if new_laf_item:
+        return ResponseModel(new_laf_item, "LAF added successfully")
+    return ErrorResponseModel("Failed to add LAF item", 500, "Failed to add LAF item")
 
 
 @router.get("/items/", response_description="Filter for LAF items")
@@ -135,6 +144,7 @@ async def get_laf_items(
     ),
     description: Optional[str] = Query(None, description="Description of the item"),
     type: Optional[str] = Query(None, description="Type of the item"),
+    archived: bool = Query(False, description="Archived items"),
     auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
 ) -> dict[str, Any]:
     authenticated, message, _ = auth
@@ -149,8 +159,32 @@ async def get_laf_items(
         "type": type,
     }
 
-    laf_items = await retrieve_laf_items(dict_laf_filters)
-    return ResponseModel(laf_items, "Retrieved LAF items")
+    laf_items = await retrieve_laf_items(dict_laf_filters, archived)
+    if laf_items:
+        return ResponseModel(laf_items, "Retrieved LAF items")
+    return ErrorResponseModel("Empty list returned", 404, "Empty list returned")
+
+
+@router.get("/items/expired/", response_description="Filter for LAF items")
+async def get_laf_items_expired(
+    water_bottle: int = Query(30, description="Water Bottle days to expiration"),
+    clothing: int = Query(90, description="Clothing days to expiration"),
+    umbrella: int = Query(90, description="Umbrella days to expiration"),
+    inexpensive: int = Query(180, description="Inexpensive days to expiration"),
+    expensive: int = Query(365, description="Expensive days to expiration"),
+    type: str = Query("All", description="Type of the item"),
+    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
+) -> dict[str, Any]:
+    authenticated, message, _ = auth
+    if not authenticated:
+        raise HTTPException(status_code=401, detail=message)
+
+    laf_items = await retrieve_expired_laf(
+        water_bottle, clothing, umbrella, inexpensive, expensive, type
+    )
+    if laf_items:
+        return ResponseModel(laf_items, "Retrieved expired LAF items")
+    return ErrorResponseModel("Empty list returned", 404, "Empty list returned")
 
 
 @router.put("/item/found/{id}", response_description="Found a LAF item")
@@ -201,7 +235,11 @@ async def new_lost_report(
     dict_lost_report = jsonable_encoder(lost_report)
     dict_lost_report["location"] = dict_lost_report["location"].split(",")
     new_lost_report = await add_lost_report(dict_lost_report, authenticated)
-    return ResponseModel(new_lost_report, "LAF added successfully")
+    if new_lost_report:
+        return ResponseModel(new_lost_report, "LAF added successfully")
+    return ErrorResponseModel(
+        "Failed to add Lost Report", 500, "Failed to add Lost Report"
+    )
 
 
 @router.get("/reports/", response_description="Filter for Lost Reports")
@@ -215,6 +253,7 @@ async def get_lost_reports(
     type: Optional[str] = Query(None, description="Type of the item"),
     name: Optional[str] = Query(None, description="Name of the owner"),
     email: Optional[str] = Query(None, description="Email of the owner"),
+    archived: bool = Query(False, description="Archived items"),
     auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
 ) -> dict[str, Any]:
     authenticated, message, _ = auth
@@ -230,8 +269,10 @@ async def get_lost_reports(
         "name": name,
         "email": email,
     }
-    lost_reports = await retrieve_lost_reports(dict_lost_report_filters)
-    return ResponseModel(lost_reports, "Retrieved Lost Reports")
+    lost_reports = await retrieve_lost_reports(dict_lost_report_filters, archived)
+    if lost_reports:
+        return ResponseModel(lost_reports, "Retrieved Lost Reports")
+    return ErrorResponseModel("Empty list returned", 404, "Empty list returned")
 
 
 @router.put("/report/found/{id}", response_description="Found a Lost Report")
