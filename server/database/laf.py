@@ -129,6 +129,14 @@ async def update_laf_item(laf_id: str, laf_data: dict) -> dict | None:
     return await update_laf(laf_id, laf_data, now)
 
 
+async def archive_laf_items(ids: list[str]) -> None:
+    now = datetime.now()
+    await laf_items_collection.update_many(
+        {"_id": {"$in": [int(id) for id in ids]}},
+        {"$set": {"archived": True, "updated": now}},
+    )
+
+
 laf_item_query_mapping = {
     "dateFilter": lambda v, laf_query_data: (
         {"date": {"$lte": laf_query_data["date"]}}
