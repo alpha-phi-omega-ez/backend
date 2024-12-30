@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import jwt
-from fastapi import Request, HTTPException, status
+from fastapi import HTTPException, Request, status
 
 from server.config import settings
 

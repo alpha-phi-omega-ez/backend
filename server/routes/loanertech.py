@@ -1,6 +1,6 @@
 from typing import Any, Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends
 from fastapi.encoders import jsonable_encoder
 
 from server.database.loanertech import (
@@ -11,7 +11,7 @@ from server.database.loanertech import (
     retrieve_loanertechs_unauthenticated,
     update_loanertech,
 )
-from server.helpers.auth import simple_auth_check, required_auth
+from server.helpers.auth import required_auth, simple_auth_check
 from server.models import ErrorResponseModel, ResponseModel
 from server.models.loanertech import LoanerTech, LoanerTechCheckin, LoanerTechCheckout
 
