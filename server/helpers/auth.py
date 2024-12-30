@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import jwt
-from fastapi import Request
+from fastapi import Request, HTTPException, status
 
 from server.config import settings
 
@@ -42,7 +41,7 @@ async def validate_code_and_get_user_email(code: str) -> str | None:
     return None
 
 
-async def validate_token(token: str):
+async def validate_token(token: str) -> dict:
     if token in blacklisted_tokens:
         raise BlacklistedTokenException
 
@@ -56,9 +55,9 @@ async def create_access_token(
 ) -> str:
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now() + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
@@ -70,12 +69,12 @@ async def blacklist_token(token: str) -> None:
     blacklisted_tokens.add(token)
 
 
-async def simple_auth_check(request: Request) -> tuple[bool, str, Any]:
+async def simple_auth_check(request: Request) -> tuple[bool, str, dict | None]:
     token = request.cookies.get("authToken")
 
     if token:
         try:
-            payload = await validate_token(token)  # Your JWT validation function
+            payload = await validate_token(token)
             return True, "", payload
         except jwt.ExpiredSignatureError:
             return False, "Token expired", None
@@ -84,3 +83,12 @@ async def simple_auth_check(request: Request) -> tuple[bool, str, Any]:
         except BlacklistedTokenException:
             return False, "User logged out", None
     return False, "No token found", None
+
+
+async def required_auth(request: Request) -> dict:
+    authenticated, message, payload = await simple_auth_check(request)
+
+    if authenticated and payload:
+        return payload
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=message)

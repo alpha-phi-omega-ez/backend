@@ -11,7 +11,7 @@ from server.database.loanertech import (
     retrieve_loanertechs_unauthenticated,
     update_loanertech,
 )
-from server.helpers.auth import simple_auth_check
+from server.helpers.auth import simple_auth_check, required_auth
 from server.models import ErrorResponseModel, ResponseModel
 from server.models.loanertech import LoanerTech, LoanerTechCheckin, LoanerTechCheckout
 
@@ -19,7 +19,9 @@ router = APIRouter()
 
 
 @router.get("/", response_description="LoanerTech list retrieved")
-async def get_loanertechs(auth: Tuple[bool, str, Any] = Depends(simple_auth_check)):
+async def get_loanertechs(
+    auth: Tuple[bool, str, dict | None] = Depends(simple_auth_check)
+) -> dict[str, Any]:
     authenticated = auth[0]
 
     loanertechs = (
@@ -37,13 +39,8 @@ async def get_loanertechs(auth: Tuple[bool, str, Any] = Depends(simple_auth_chec
 @router.post("/", response_description="LoanerTech data added into the database")
 async def add_loanertech_data(
     loanertech: LoanerTech = Body(...),
-    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
+    auth: dict = Depends(required_auth),
 ) -> dict[str, Any]:
-    authenticated, message, payload = auth
-    if not authenticated:
-        raise HTTPException(status_code=401, detail=message)
-
-    print(payload)
 
     dict_loanertech = jsonable_encoder(loanertech)
     new_loanertech = await add_loanertech(dict_loanertech)
@@ -62,17 +59,10 @@ async def get_loanertech_data(id: int) -> dict[str, Any]:
 async def update_loanertech_data(
     id: int,
     req: LoanerTech = Body(...),
-    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
+    auth: dict = Depends(required_auth),
 ) -> dict[str, Any]:
-    authenticated, message, payload = auth
-    if not authenticated:
-        raise HTTPException(status_code=401, detail=message)
 
-    print(payload)
-
-    # dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
     dict_req = jsonable_encoder(req)
-
     updated_loanertech = await update_loanertech(id, dict_req)
     if updated_loanertech:
         return ResponseModel(
@@ -90,13 +80,9 @@ async def update_loanertech_data(
     "/delete/{id}", response_description="LoanerTech data deleted from the database"
 )
 async def delete_loanertech_data(
-    id: int, auth: Tuple[bool, str, Any] = Depends(simple_auth_check)
+    id: int,
+    auth: dict = Depends(required_auth),
 ) -> dict[str, Any]:
-    authenticated, message, payload = auth
-    if not authenticated:
-        raise HTTPException(status_code=401, detail=message)
-
-    print(payload)
 
     deleted_loanertech = await delete_loanertech(id)
     if deleted_loanertech:
@@ -111,16 +97,10 @@ async def delete_loanertech_data(
 @router.put("/checkout")
 async def checkout_loanertech(
     req: LoanerTechCheckout = Body(...),
-    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
+    auth: dict = Depends(required_auth),
 ) -> dict[str, Any]:
-    authenticated, message, _ = auth
 
-    if not authenticated:
-        raise HTTPException(status_code=401, detail=message)
-
-    # dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
     dict_req = jsonable_encoder(req)
-
     success = True
     ids = []
     for id in dict_req["ids"]:
@@ -151,15 +131,10 @@ async def checkout_loanertech(
 @router.put("/checkin")
 async def checkin_loanertech(
     req: LoanerTechCheckin = Body(...),
-    auth: Tuple[bool, str, Any] = Depends(simple_auth_check),
+    auth: dict = Depends(required_auth),
 ) -> dict[str, Any]:
-    authenticated, message, _ = auth
-    if not authenticated:
-        raise HTTPException(status_code=401, detail=message)
 
-    # dict_req = {k: v for k, v in req.model_dump().items() if v is not None}
     dict_req = jsonable_encoder(req)
-
     success = True
     ids = []
     for id in dict_req["ids"]:
