@@ -1,6 +1,6 @@
 from typing import Any, List, Optional, Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, Query
 from fastapi.encoders import jsonable_encoder
 
 from server.database.laf import (
@@ -8,6 +8,7 @@ from server.database.laf import (
     add_laf_location,
     add_laf_type,
     add_lost_report,
+    archive_laf_items,
     delete_laf_location,
     delete_laf_type,
     found_laf_item,
@@ -20,11 +21,12 @@ from server.database.laf import (
     update_laf_item,
     update_lost_report_item,
 )
-from server.helpers.auth import simple_auth_check, required_auth
+from server.helpers.auth import required_auth, simple_auth_check
 from server.models import ErrorResponseModel, ResponseModel
 from server.models.laf import (
     DateFilter,
     DateString,
+    LAFArchiveItems,
     LAFFoundItem,
     LAFItem,
     LAFLocation,
@@ -197,6 +199,20 @@ async def update_laf_item_route(
     return ErrorResponseModel(
         "Failed to update LAF item", 500, "Failed to update LAF item"
     )
+
+
+@router.post("/items/archive/", response_description="Archive LAF items")
+async def archive_laf_items_route(
+    laf_items: LAFArchiveItems = Body(...),
+    auth: dict = Depends(required_auth),
+) -> dict[str, Any]:
+
+    dict_laf = jsonable_encoder(laf_items)
+
+    print("DICT LAF", dict_laf)
+
+    await archive_laf_items(dict_laf["ids"])
+    return ResponseModel({"archive": True}, "LAF items archived successfully")
 
 
 # Lost Report Routes
