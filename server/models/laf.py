@@ -24,6 +24,18 @@ class LAFFoundItem(BaseModel):
     name: str = Field(...)
     email: EmailStr = Field(...)
 
+    class Config:
+        json_schema_extra = {
+            "example": {"name": "Alfred Glump", "email": "glump@rpi.edu"}
+        }
+
+
+class LAFArchiveItems(BaseModel):
+    ids: list[str] = Field(...)
+
+    class Config:
+        json_schema_extra = {"example": {"ids": ["1", "2", "3"]}}
+
 
 class LostReport(BaseModel):
     type: str = Field(...)
