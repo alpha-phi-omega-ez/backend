@@ -3,6 +3,8 @@ from asyncio import gather
 from datetime import datetime, timedelta
 from typing import List
 
+from bson import ObjectId
+
 from server.database import database
 from server.helpers.db import async_dict_itr, datetime_time_delta
 
@@ -57,7 +59,7 @@ async def lost_report_helper(lost_report) -> dict:
         "name": lost_report["name"],
         "email": lost_report["email"],
         "type": lost_report["type"],
-        "location": lost_report["location"],
+        "location": [location.strip() for location in lost_report["location"]],
         "date": f"{date[5:7]}/{date[8:]}/{date[:4]}",
         "description": lost_report["description"],
         "found": lost_report["found"],
@@ -97,10 +99,10 @@ async def add_laf(laf_data: dict) -> dict:
     return await laf_helper(new_laf_item)
 
 
-async def update_laf(laf_id: str, laf_data: dict, now: datetime) -> dict | None:
+async def update_laf(laf_id: str, laf_data: dict, now: datetime) -> bool:
     laf_item = await laf_items_collection.find_one({"_id": int(laf_id)})
     if laf_item is None:
-        return None
+        return False
 
     laf_data["updated"] = now
 
@@ -108,12 +110,12 @@ async def update_laf(laf_id: str, laf_data: dict, now: datetime) -> dict | None:
         {"_id": int(laf_id)}, {"$set": laf_data}
     )
     if updated_laf_item.modified_count == 1:
-        return await laf_helper(laf_data)
+        return True
 
-    return None
+    return False
 
 
-async def found_laf_item(laf_id: str, laf_found: dict) -> dict | None:
+async def found_laf_item(laf_id: str, laf_found: dict) -> bool:
     now = datetime.now()
 
     laf_found["found"] = True
@@ -123,7 +125,7 @@ async def found_laf_item(laf_id: str, laf_found: dict) -> dict | None:
     return await update_laf(laf_id, laf_found, now)
 
 
-async def update_laf_item(laf_id: str, laf_data: dict) -> dict | None:
+async def update_laf_item(laf_id: str, laf_data: dict) -> bool:
     now = datetime.now()
 
     return await update_laf(laf_id, laf_data, now)
@@ -347,23 +349,25 @@ async def add_lost_report(lost_report_data: dict, auth: bool) -> dict:
 
 async def update_lost_report(
     lost_report_id: str, lost_report_data: dict, now: datetime
-) -> dict | None:
-    lost_report = await lost_reports_collection.find_one({"_id": lost_report_id})
+) -> bool:
+    lost_report_id_bson = ObjectId(lost_report_id)
+    lost_report = await lost_reports_collection.find_one({"_id": lost_report_id_bson})
     if lost_report is None:
-        return None
+        return False
 
     lost_report_data["updated"] = now
+    lost_report_data["viewed"] = True
 
     updated_lost_report = await lost_reports_collection.update_one(
-        {"_id": lost_report_id}, {"$set": lost_report_data}
+        {"_id": lost_report_id_bson}, {"$set": lost_report_data}
     )
     if updated_lost_report.modified_count == 1:
-        return await lost_report_helper(lost_report_data)
+        return True
 
-    return None
+    return False
 
 
-async def found_lost_report(lost_report_id: str) -> dict | None:
+async def found_lost_report(lost_report_id: str) -> bool:
     now = datetime.now()
 
     lost_report_found = {
@@ -375,9 +379,7 @@ async def found_lost_report(lost_report_id: str) -> dict | None:
     return await update_lost_report(lost_report_id, lost_report_found, now)
 
 
-async def update_lost_report_item(
-    lost_report_id: str, lost_report_data: dict
-) -> dict | None:
+async def update_lost_report_item(lost_report_id: str, lost_report_data: dict) -> bool:
     now = datetime.now()
 
     return await update_lost_report(lost_report_id, lost_report_data, now)
