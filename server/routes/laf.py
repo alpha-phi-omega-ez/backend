@@ -179,7 +179,9 @@ async def found_laf_item_route(
     laf_found_dict = jsonable_encoder(laf_found)
     updated_laf_item = await found_laf_item(id, laf_found_dict)
     if updated_laf_item:
-        return ResponseModel(updated_laf_item, "LAF item updated successfully")
+        return ResponseModel(
+            {"suceeded": updated_laf_item}, "LAF item updated successfully"
+        )
     return ErrorResponseModel(
         "Failed to update LAF item", 500, "Failed to update LAF item"
     )
@@ -195,7 +197,9 @@ async def update_laf_item_route(
     dict_laf = jsonable_encoder(laf_item)
     updated_laf_item = await update_laf_item(id, dict_laf)
     if updated_laf_item:
-        return ResponseModel(updated_laf_item, "LAF item updated successfully")
+        return ResponseModel(
+            {"suceeded": updated_laf_item}, "LAF item updated successfully"
+        )
     return ErrorResponseModel(
         "Failed to update LAF item", 500, "Failed to update LAF item"
     )
@@ -208,8 +212,6 @@ async def archive_laf_items_route(
 ) -> dict[str, Any]:
 
     dict_laf = jsonable_encoder(laf_items)
-
-    print("DICT LAF", dict_laf)
 
     await archive_laf_items(dict_laf["ids"])
     return ResponseModel({"archive": True}, "LAF items archived successfully")
@@ -226,7 +228,9 @@ async def new_lost_report(
     authenticated = auth[0]
 
     dict_lost_report = jsonable_encoder(lost_report)
-    dict_lost_report["location"] = dict_lost_report["location"].split(",")
+    dict_lost_report["location"] = [
+        location.strip() for location in dict_lost_report["location"].split(",")
+    ]
     new_lost_report = await add_lost_report(dict_lost_report, authenticated)
     if new_lost_report:
         return ResponseModel(new_lost_report, "Lost report added successfully")
@@ -285,6 +289,7 @@ async def update_lost_report_route(
 ) -> dict[str, Any]:
 
     dict_lost_report = jsonable_encoder(lost_report)
+    dict_lost_report["location"] = dict_lost_report["location"].split(",")
     updated_lost_report = await update_lost_report_item(id, dict_lost_report)
     if updated_lost_report:
         return ResponseModel(updated_lost_report, "Lost Report updated successfully")
