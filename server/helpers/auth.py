@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any
 from uuid import uuid4
 
 import jwt
-from fastapi import Request
+from fastapi import HTTPException, Request, status
 
 from server.config import settings
 
@@ -18,7 +17,7 @@ class BlacklistedTokenException(Exception):
 async def generate_temporary_code(user_email: str) -> str:
     # Generate a unique temporary code
     code = str(uuid4())
-    expires_at = datetime.now() + timedelta(seconds=5)  # expires in 5 seconds
+    expires_at = datetime.now() + timedelta(seconds=8)  # expires in 8 seconds
     temp_codes[code] = {"email": user_email, "expires_at": expires_at}
     return code
 
@@ -42,7 +41,7 @@ async def validate_code_and_get_user_email(code: str) -> str | None:
     return None
 
 
-async def validate_token(token: str):
+async def validate_token(token: str) -> dict:
     if token in blacklisted_tokens:
         raise BlacklistedTokenException
 
@@ -70,12 +69,12 @@ async def blacklist_token(token: str) -> None:
     blacklisted_tokens.add(token)
 
 
-async def simple_auth_check(request: Request) -> tuple[bool, str, Any]:
+async def simple_auth_check(request: Request) -> tuple[bool, str, dict | None]:
     token = request.cookies.get("authToken")
 
     if token:
         try:
-            payload = await validate_token(token)  # Your JWT validation function
+            payload = await validate_token(token)
             return True, "", payload
         except jwt.ExpiredSignatureError:
             return False, "Token expired", None
@@ -84,3 +83,12 @@ async def simple_auth_check(request: Request) -> tuple[bool, str, Any]:
         except BlacklistedTokenException:
             return False, "User logged out", None
     return False, "No token found", None
+
+
+async def required_auth(request: Request) -> dict:
+    authenticated, message, payload = await simple_auth_check(request)
+
+    if authenticated and payload:
+        return payload
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=message)

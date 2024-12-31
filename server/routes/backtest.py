@@ -3,9 +3,9 @@ from typing import Any
 from fastapi import APIRouter
 
 from server.database.backtest import (
+    retrieve_backtest,
     retrieve_coursecodes,
     retrieve_courses,
-    retrieve_backtest,
 )
 from server.models import ResponseModel
 
@@ -22,7 +22,6 @@ async def get_coursecodes() -> dict[str, Any]:
 
 @router.get("/courses/{course_code}", response_description="Courses list retrieved")
 async def get_courses(course_code: str) -> dict[str, Any]:
-    print(course_code)
     courses = await retrieve_courses(course_code)
     if len(courses) > 0:
         return ResponseModel(courses, "Courses data retrieved successfully")
