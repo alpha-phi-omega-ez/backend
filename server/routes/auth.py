@@ -108,7 +108,7 @@ async def logout(request: Request, response: Response) -> JSONResponse:
 
 
 @router.get("/auth/check")
-async def check_auth(request: Request):
+async def check_auth(request: Request) -> dict[str, bool]:
     token = request.cookies.get("authToken")
 
     if token:
