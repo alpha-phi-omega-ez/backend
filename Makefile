@@ -4,9 +4,6 @@ init:
 clean:
 	pystarter clean
 
-run: clean
-	gunicorn run:app
-
 develop: clean
 	python3 main.py
 
