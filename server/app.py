@@ -40,4 +40,4 @@ app.include_router(AuthRouter, tags=["Auth"], prefix="")
 
 @app.get("/", tags=["Root"])
 async def read_root() -> dict[str, str]:
-    return {"message": "Welcome to this fantastic app!"}
+    return {"message": "Welcome to the apoez backend!"}
