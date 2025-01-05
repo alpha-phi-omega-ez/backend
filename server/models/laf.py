@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel, EmailStr, Field, constr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class LAFItem(BaseModel):
