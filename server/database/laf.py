@@ -1,22 +1,32 @@
 import re
 from asyncio import gather
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Union
 
 from bson import ObjectId
+from fastapi import HTTPException, status
 
 from server.database import database
-from server.helpers.db import async_dict_itr, datetime_time_delta
+from server.helpers.db import (
+    async_dict_itr,
+    datetime_time_delta,
+    get_next_sequence_value,
+)
 
-laf_items_collection = database.get_collection("laf_items_collection")
-lost_reports_collection = database.get_collection("lost_reports_collection")
-laf_id_collection = database.get_collection("laf_id_collection")
+sequence_id_collection = database.get_collection("sequence_id")
+laf_items_collection = database.get_collection("laf_items")
+lost_reports_collection = database.get_collection("lost_reports")
 laf_types_collection = database.get_collection("laf_types")
 laf_locations_collection = database.get_collection("laf_locations")
 laf_matching_collection = database.get_collection("laf_matching")
 
 
-laf_type_cache = {"datetime": datetime(1970, 1, 1), "data": []}
+laf_type_cache = {
+    "datetime": datetime(1970, 1, 1),
+    "data": [],
+    "map_to_id": {},
+    "map_to_type": {},
+}
 laf_locations_cache = {"datetime": datetime(1970, 1, 1), "data": []}
 
 
@@ -27,19 +37,52 @@ async def laf_db_setup() -> None:
     await lost_reports_collection.create_index([("description", "text")])
 
 
+async def get_type_id(type_in: str) -> ObjectId:
+    # Attempt to retrieve result from cache
+    map_to_id = laf_type_cache["map_to_id"]
+    if type_in in map_to_id:
+        return map_to_id["type_in"]
+
+    # If the cache doesn't have the item fetch from the DB
+    laf_type = await laf_types_collection.find_one({"type": type_in})
+    if not laf_type:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="LAF Type not found"
+        )
+    return laf_type["_id"]
+
+
+async def get_type_from_id(id: ObjectId) -> dict:
+    # Attempt to retrieve result from cache
+    map_to_type = laf_type_cache["map_to_type"]
+    if id in map_to_type:
+        return map_to_type[id]
+
+    # If the cache doesn't have the item fetch from the DB
+    laf_type = await laf_types_collection.find_one({"_id": id})
+    if not laf_type:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="LAF Type not found"
+        )
+    return laf_type
+
+
 # Helper functions to convert MongoDB documents to Python dictionaries
-async def laf_helper(laf) -> dict:
+async def laf_helper(laf: dict) -> dict:
     date = laf["date"]
+    laf_type = await get_type_from_id(laf["type_id"])
+
     return {
         "id": laf["_id"],
-        "type": laf["type"],
+        "type": laf_type["type"],
+        "display_id": f"{laf_type["letter"]}{laf["_id"]}",
         "location": laf["location"],
         "date": f"{date[5:7]}/{date[8:]}/{date[:4]}",
         "description": laf["description"],
     }
 
 
-async def laf_archived_helper(laf) -> dict:
+async def laf_archived_helper(laf: dict) -> dict:
     returned_date = laf["returned"]
     laf_data = await laf_helper(laf)
     laf_data["found"] = laf["found"]
@@ -52,13 +95,15 @@ async def laf_archived_helper(laf) -> dict:
     return laf_data
 
 
-async def lost_report_helper(lost_report) -> dict:
+async def lost_report_helper(lost_report: dict) -> dict:
     date = lost_report["date"]
+    laf_type = await get_type_from_id(lost_report["type_id"])
+
     return {
         "id": str(lost_report["_id"]),
         "name": lost_report["name"],
         "email": lost_report["email"],
-        "type": lost_report["type"],
+        "type": laf_type["type"],
         "location": [location.strip() for location in lost_report["location"]],
         "date": f"{date[5:7]}/{date[8:]}/{date[:4]}",
         "description": lost_report["description"],
@@ -67,44 +112,49 @@ async def lost_report_helper(lost_report) -> dict:
     }
 
 
-async def get_next_sequence_value(sequence_name) -> int:
-    result = await laf_id_collection.find_one_and_update(
-        {"_id": sequence_name}, {"$inc": {"seq": 1}}, return_document=True
-    )
-    if result is None:
-        # TODO: get the largest id in the collection and increment it by 1
-        await laf_id_collection.insert_one({"_id": sequence_name, "seq": 1})
-        result = {"seq": 1}
-    return result["seq"]
-
-
 # LAF Queries
 
 
 # Add a new laf item into to the database
 async def add_laf(laf_data: dict) -> dict:
+    type_id = await get_type_id(laf_data["type"])
+    del laf_data["type"]
+
     now = datetime.now()
-    # Add the ID to the laf data
-    laf_data["_id"] = await get_next_sequence_value("laf_id")
+
+    laf_data["_id"] = await get_next_sequence_value("laf_id", sequence_id_collection)
     laf_data["found"] = False
     laf_data["archived"] = False
     laf_data["created"] = now
     laf_data["updated"] = now
-    laf_data["name"] = ""
-    laf_data["email"] = ""
-    laf_data["returned"] = now
+    laf_data["name"] = None
+    laf_data["email"] = None
+    laf_data["returned"] = None
+    laf_data["type_id"] = type_id
 
     laf_item = await laf_items_collection.insert_one(laf_data)
     new_laf_item = await laf_items_collection.find_one({"_id": laf_item.inserted_id})
-    return await laf_helper(new_laf_item)
+    if new_laf_item:
+        return await laf_helper(new_laf_item)
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Failed to create LAF item",
+    )
 
 
 async def update_laf(laf_id: str, laf_data: dict, now: datetime) -> bool:
     laf_item = await laf_items_collection.find_one({"_id": int(laf_id)})
     if laf_item is None:
-        return False
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Laf item with id {laf_id} not found",
+        )
 
     laf_data["updated"] = now
+    if laf_data["type"]:
+        type_id = await get_type_id(laf_data["type"])
+        del laf_data["type"]
+        laf_data["type_id"] = type_id
 
     updated_laf_item = await laf_items_collection.update_one(
         {"_id": int(laf_id)}, {"$set": laf_data}
@@ -146,7 +196,6 @@ laf_item_query_mapping = {
         else {"date": {"$gte": laf_query_data["date"]}}
     ),
     "location": lambda v, _: {"location": {"$in": v}},
-    "type": lambda v, _: {"type": v},
     "description": lambda v, _: {
         "description": {"$regex": re.escape(v), "$options": "i"}
     },
@@ -155,10 +204,12 @@ laf_item_query_mapping = {
 
 # Retrieve all relevant laf items from the database
 async def retrieve_laf_items(laf_query_data: dict, archived: bool = False) -> list:
-    query = {"archived": archived}
+    query: dict[str, Union[bool, dict, ObjectId, str]] = {"archived": archived}
     async for k, v in async_dict_itr(laf_query_data):
         if v is not None and k in laf_item_query_mapping:
             query.update(laf_item_query_mapping[k](v, laf_query_data))
+        elif k == "type" and v:
+            query["type_id"] = await get_type_id(v)
 
     laf_items = []
     # Use .skip before limit for pagination
@@ -203,7 +254,9 @@ type_expiration_mapping = {
 
 async def fetch_expired_laf_items(expired_query: dict) -> List[dict]:
     expired_laf_items = []
-    async for laf_item in laf_items_collection.find(expired_query).sort("date", -1):
+    async for laf_item in (
+        laf_items_collection.find(expired_query).sort("date", -1).limit(30)
+    ):
         expired_laf_items.append(await laf_helper(laf_item))
 
     return expired_laf_items
@@ -213,8 +266,8 @@ async def fetch_potentially_expired_laf_items(
     potentially_expired_query: dict,
 ) -> List[dict]:
     potentially_expired_laf_items = []
-    async for laf_item in laf_items_collection.find(potentially_expired_query).sort(
-        "date", -1
+    async for laf_item in (
+        laf_items_collection.find(potentially_expired_query).sort("date", -1).limit(30)
     ):
         potentially_expired_laf_items.append(await laf_helper(laf_item))
 
@@ -333,18 +386,26 @@ async def retrieve_expired_laf(
 
 # Add a new lost report into to the database
 async def add_lost_report(lost_report_data: dict, auth: bool) -> dict:
+    type_id = await get_type_id(lost_report_data["type"])
+    del lost_report_data["type"]
     now = datetime.now()
     lost_report_data["found"] = False
     lost_report_data["archived"] = False
     lost_report_data["created"] = now
     lost_report_data["updated"] = now
     lost_report_data["viewed"] = auth
+    lost_report_data["type_id"] = type_id
 
     lost_report = await lost_reports_collection.insert_one(lost_report_data)
     new_lost_report = await lost_reports_collection.find_one(
         {"_id": lost_report.inserted_id}
     )
-    return await lost_report_helper(new_lost_report)
+    if new_lost_report:
+        return await lost_report_helper(new_lost_report)
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Failed to create Lost Report",
+    )
 
 
 async def update_lost_report(
@@ -357,6 +418,10 @@ async def update_lost_report(
 
     lost_report_data["updated"] = now
     lost_report_data["viewed"] = True
+    if lost_report_data["type"]:
+        type_id = await get_type_id(lost_report_data["type"])
+        del lost_report_data["type"]
+        lost_report_data["type_id"] = type_id
 
     updated_lost_report = await lost_reports_collection.update_one(
         {"_id": lost_report_id_bson}, {"$set": lost_report_data}
@@ -395,7 +460,6 @@ lost_report_query_mapping = {
         "description": {"$regex": re.escape(v), "$options": "i"}
     },
     "location": lambda v, _: {"location": {"$in": v}},
-    "type": lambda v, _: {"type": v},
     "name": lambda v, _: {"name": {"$regex": re.escape(v), "$options": "i"}},
     "email": lambda v, _: {"email": {"$regex": re.escape(v), "$options": "i"}},
 }
@@ -405,10 +469,12 @@ lost_report_query_mapping = {
 async def retrieve_lost_reports(
     lost_report_query_data: dict, archived: bool = False
 ) -> list:
-    query = {"archived": archived}
+    query: dict[str, Union[bool, dict, ObjectId, str]] = {"archived": archived}
     async for k, v in async_dict_itr(lost_report_query_data):
         if v is not None and k in lost_report_query_mapping:
             query.update(lost_report_query_mapping[k](v, lost_report_query_data))
+        elif k == "type" and v:
+            query["type_id"] = await get_type_id(v)
 
     lost_reports = []
     # Use .skip before limit for pagination
@@ -420,25 +486,22 @@ async def retrieve_lost_reports(
 
 
 async def retrieve_laf_types() -> List[str]:
-    return [
-        "Apparel",
-        "Books",
-        "Electronics",
-        "Miscellaneous",
-        "Water Bottle",
-        "Umbrella",
-        "Jewelery",
-    ]
     now = datetime.now()
     if laf_type_cache["datetime"] > now - timedelta(hours=24):
         return laf_type_cache["data"]
 
     laf_types = []
-    async for laf_type in laf_types_collection.find():
+    laf_type_mapping_type = {}
+    laf_type_mapping_id = {}
+    async for laf_type in laf_types_collection.find({"view": True}):
         laf_types.append(laf_type["type"])
+        laf_type_mapping_type[laf_type["type"]] = laf_type["_id"]
+        laf_type_mapping_id[laf_type["_id"]] = laf_type["type"]
 
     laf_type_cache["datetime"] = now
     laf_type_cache["data"] = laf_types
+    laf_type_cache["map_to_id"] = laf_type_mapping_type
+    laf_type_cache["map_to_type"] = laf_type_mapping_id
     return laf_types
 
 
@@ -456,7 +519,6 @@ async def delete_laf_type(laf_type: str) -> bool:
 
 
 async def retrieve_laf_locations() -> List[str]:
-    return ["Union", "Mueller", "Folsom Library", "VCC"]
     now = datetime.now()
     if laf_locations_cache["datetime"] > now - timedelta(hours=24):
         return laf_locations_cache["data"]
