@@ -1,4 +1,7 @@
 from enum import Enum
+from datetime import datetime
+from typing import Annotated
+from pydantic import BeforeValidator, PlainSerializer
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -53,7 +56,7 @@ class LostReport(BaseModel):
                 "email": "glump@rpi.edu",
                 "description": "Red sweater",
                 "date": "2024-09-01",
-                "location": ["Union", "DCC"],
+                "location": "Union,DCC",
             }
         }
 
@@ -77,18 +80,13 @@ class DateFilter(str, Enum):
     after = "After"
 
 
-class DateString(str):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, value, field):
-        try:
-            # Ensure the value matches the format YYYY-MM-DD
-            from datetime import datetime
-
-            datetime.strptime(value, "%Y-%m-%d")
-            return value
-        except ValueError:
-            raise ValueError("Invalid date format. Expected YYYY-MM-DD.")
+DateString = Annotated[
+    str,
+    BeforeValidator(lambda x: None if x is None else str(x)),
+    BeforeValidator(
+        lambda x: (
+            x if x is None else datetime.strptime(x, "%Y-%m-%d").strftime("%Y-%m-%d")
+        )
+    ),
+    PlainSerializer(lambda x: x, return_type=str),
+]
