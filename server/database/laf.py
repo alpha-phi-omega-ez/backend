@@ -41,7 +41,7 @@ async def get_type_id(type_in: str) -> ObjectId:
     # Attempt to retrieve result from cache
     map_to_id = laf_type_cache["map_to_id"]
     if type_in in map_to_id:
-        return map_to_id["type_in"]
+        return map_to_id[type_in]
 
     # If the cache doesn't have the item fetch from the DB
     laf_type = await laf_types_collection.find_one({"type": type_in})
@@ -496,7 +496,10 @@ async def retrieve_laf_types() -> List[str]:
     async for laf_type in laf_types_collection.find({"view": True}):
         laf_types.append(laf_type["type"])
         laf_type_mapping_type[laf_type["type"]] = laf_type["_id"]
-        laf_type_mapping_id[laf_type["_id"]] = laf_type["type"]
+        laf_type_mapping_id[laf_type["_id"]] = {
+            "type": laf_type["type"],
+            "letter": laf_type["letter"],
+        }
 
     laf_type_cache["datetime"] = now
     laf_type_cache["data"] = laf_types
