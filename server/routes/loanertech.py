@@ -12,7 +12,7 @@ from server.database.loanertech import (
     update_loanertech,
 )
 from server.helpers.auth import required_auth, simple_auth_check
-from server.models import ErrorResponseModel, ResponseModel
+from server.helpers.responses import Response, ErrorResponse
 from server.models.loanertech import LoanerTech, LoanerTechCheckin, LoanerTechCheckout
 
 router = APIRouter()
@@ -30,10 +30,8 @@ async def get_loanertechs(
         else await retrieve_loanertechs_unauthenticated()
     )
     if loanertechs:
-        return ResponseModel(
-            loanertechs, "LoanerTech data retrieved successfully", authenticated
-        )
-    return ResponseModel(loanertechs, "Empty list returned", authenticated)
+        return Response(loanertechs, "LoanerTech data retrieved successfully")
+    return Response(loanertechs, "Empty list returned")
 
 
 @router.post("/", response_description="LoanerTech data added into the database")
@@ -44,15 +42,15 @@ async def add_loanertech_data(
 
     dict_loanertech = jsonable_encoder(loanertech)
     new_loanertech = await add_loanertech(dict_loanertech)
-    return ResponseModel(new_loanertech, "LoanerTech added successfully.")
+    return Response(new_loanertech, "LoanerTech added successfully.")
 
 
 @router.get("/{id}", response_description="LoanerTech data retrieved")
 async def get_loanertech_data(id: int) -> dict[str, Any]:
     loanertech = await retrieve_loanertech(id)
     if loanertech:
-        return ResponseModel(loanertech, "LoanerTech data retrieved successfully")
-    return ErrorResponseModel("An error occurred.", 404, "LoanerTech doesn't exist.")
+        return Response(loanertech, "LoanerTech data retrieved successfully")
+    return ErrorResponse("An error occurred.", 404, "LoanerTech doesn't exist.")
 
 
 @router.put("/update/{id}")
@@ -65,11 +63,11 @@ async def update_loanertech_data(
     dict_req = jsonable_encoder(req)
     updated_loanertech = await update_loanertech(id, dict_req)
     if updated_loanertech:
-        return ResponseModel(
+        return Response(
             f"LoanerTech with ID: {id} name update is successful",
             "LoanerTech name updated successfully",
         )
-    return ErrorResponseModel(
+    return ErrorResponse(
         "An error occurred",
         404,
         "There was an error updating the loanertech data.",
@@ -86,10 +84,10 @@ async def delete_loanertech_data(
 
     deleted_loanertech = await delete_loanertech(id)
     if deleted_loanertech:
-        return ResponseModel(
+        return Response(
             f"LoanerTech with ID: {id} removed", "LoanTech deleted successfully"
         )
-    return ErrorResponseModel(
+    return ErrorResponse(
         "An error occurred", 404, f"LoanerTech with id {id} doesn't exist"
     )
 
@@ -117,11 +115,11 @@ async def checkout_loanertech(
             break
 
     if success:
-        return ResponseModel(
+        return Response(
             f"LoanerTech with IDs: {ids} checked out",
             "LoanerTech checked out successfully",
         )
-    return ErrorResponseModel(
+    return ErrorResponse(
         "An error occurred",
         500,
         "There was an error checking out the loanertech data.",
@@ -151,11 +149,11 @@ async def checkin_loanertech(
             break
 
     if success:
-        return ResponseModel(
+        return Response(
             f"LoanerTech with IDs: {ids} checked in",
             "LoanerTech checked in successfully",
         )
-    return ErrorResponseModel(
+    return ErrorResponse(
         "An error occurred",
         500,
         "There was an error checking in the loanertech data.",

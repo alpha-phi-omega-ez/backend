@@ -22,7 +22,7 @@ from server.database.laf import (
     update_lost_report_item,
 )
 from server.helpers.auth import required_auth, simple_auth_check
-from server.models import ErrorResponseModel, ResponseModel
+from server.helpers.responses import ErrorResponse, Response
 from server.models.laf import (
     DateFilter,
     DateString,
@@ -43,7 +43,7 @@ router = APIRouter()
 @router.get("/types/", response_description="LAF types list retrieved")
 async def get_laf_types() -> dict[str, Any]:
     laf_types = await retrieve_laf_types()
-    return ResponseModel(laf_types, "Laf types data retrieved successfully")
+    return Response(laf_types, "Laf types data retrieved successfully")
 
 
 @router.post("/type/", response_description="Created a new LAF Type")
@@ -55,8 +55,8 @@ async def new_laf_type(
     dict_laf_type = jsonable_encoder(laf_type)
     new_type = await add_laf_type(dict_laf_type["type"])
     if new_type:
-        return ResponseModel(new_type, "LAF type added successfully")
-    return ErrorResponseModel("Failed to add LAF type", 500, "Failed to add LAF type")
+        return Response(new_type, "LAF type added successfully")
+    return ErrorResponse("Failed to add LAF type", 500, "Failed to add LAF type")
 
 
 @router.delete("/type/", response_description="Delete a LAF type")
@@ -67,10 +67,8 @@ async def delete_laf_type_route(
 
     dict_laf_type = jsonable_encoder(laf_type)
     if await delete_laf_type(dict_laf_type["location"]):
-        return ResponseModel({"delete": True}, "LAF location added successfully")
-    return ErrorResponseModel(
-        "Failed to delete LAF type", 500, "Failed to delete LAF type"
-    )
+        return Response({"delete": True}, "LAF location added successfully")
+    return ErrorResponse("Failed to delete LAF type", 500, "Failed to delete LAF type")
 
 
 # LAF Location routes
@@ -79,7 +77,7 @@ async def delete_laf_type_route(
 @router.get("/locations/", response_description="LAF locations list retrieved")
 async def get_laf_locations() -> dict[str, Any]:
     laf_locations = await retrieve_laf_locations()
-    return ResponseModel(laf_locations, "Laf locations data retrieved successfully")
+    return Response(laf_locations, "Laf locations data retrieved successfully")
 
 
 @router.post("/location/", response_description="Created a new LAF Location")
@@ -91,8 +89,8 @@ async def new_laf_location(
     dict_laf_location = jsonable_encoder(laf_location)
     new_location = await add_laf_location(dict_laf_location["location"])
     if new_location:
-        return ResponseModel(new_location, "LAF location added successfully")
-    return ErrorResponseModel(
+        return Response(new_location, "LAF location added successfully")
+    return ErrorResponse(
         "Failed to add LAF location", 500, "Failed to add LAF location"
     )
 
@@ -105,8 +103,8 @@ async def delete_laf_location_route(
 
     dict_laf_location = jsonable_encoder(laf_location)
     if await delete_laf_location(dict_laf_location["location"]):
-        return ResponseModel({"delete": True}, "LAF location added successfully")
-    return ErrorResponseModel(
+        return Response({"delete": True}, "LAF location added successfully")
+    return ErrorResponse(
         "Failed to delete LAF location", 500, "Failed to delete LAF location"
     )
 
@@ -123,8 +121,8 @@ async def new_laf_item(
     dict_laf = jsonable_encoder(laf_item)
     new_laf_item = await add_laf(dict_laf)
     if new_laf_item:
-        return ResponseModel(new_laf_item, "LAF added successfully")
-    return ErrorResponseModel("Failed to add LAF item", 500, "Failed to add LAF item")
+        return Response(new_laf_item, "LAF added successfully")
+    return ErrorResponse("Failed to add LAF item", 500, "Failed to add LAF item")
 
 
 @router.get("/items/", response_description="Filter for LAF items")
@@ -149,7 +147,7 @@ async def get_laf_items(
     }
 
     laf_items = await retrieve_laf_items(dict_laf_filters, archived)
-    return ResponseModel(laf_items, "Retrieved LAF items")
+    return Response(laf_items, "Retrieved LAF items")
 
 
 @router.get("/items/expired/", response_description="Filter for LAF items")
@@ -166,7 +164,7 @@ async def get_laf_items_expired(
     laf_items = await retrieve_expired_laf(
         water_bottle, clothing, umbrella, inexpensive, expensive, type
     )
-    return ResponseModel(laf_items, "Retrieved expired LAF items")
+    return Response(laf_items, "Retrieved expired LAF items")
 
 
 @router.put("/item/found/{id}", response_description="Found a LAF item")
@@ -179,12 +177,8 @@ async def found_laf_item_route(
     laf_found_dict = jsonable_encoder(laf_found)
     updated_laf_item = await found_laf_item(id, laf_found_dict)
     if updated_laf_item:
-        return ResponseModel(
-            {"suceeded": updated_laf_item}, "LAF item updated successfully"
-        )
-    return ErrorResponseModel(
-        "Failed to update LAF item", 500, "Failed to update LAF item"
-    )
+        return Response({"suceeded": updated_laf_item}, "LAF item updated successfully")
+    return ErrorResponse("Failed to update LAF item", 500, "Failed to update LAF item")
 
 
 @router.put("/item/{id}", response_description="Update a LAF item")
@@ -197,12 +191,8 @@ async def update_laf_item_route(
     dict_laf = jsonable_encoder(laf_item)
     updated_laf_item = await update_laf_item(id, dict_laf)
     if updated_laf_item:
-        return ResponseModel(
-            {"suceeded": updated_laf_item}, "LAF item updated successfully"
-        )
-    return ErrorResponseModel(
-        "Failed to update LAF item", 500, "Failed to update LAF item"
-    )
+        return Response({"suceeded": updated_laf_item}, "LAF item updated successfully")
+    return ErrorResponse("Failed to update LAF item", 500, "Failed to update LAF item")
 
 
 @router.post("/items/archive/", response_description="Archive LAF items")
@@ -214,7 +204,7 @@ async def archive_laf_items_route(
     dict_laf = jsonable_encoder(laf_items)
 
     await archive_laf_items(dict_laf["ids"])
-    return ResponseModel({"archive": True}, "LAF items archived successfully")
+    return Response({"archive": True}, "LAF items archived successfully")
 
 
 # Lost Report Routes
@@ -233,10 +223,8 @@ async def new_lost_report(
     ]
     new_lost_report = await add_lost_report(dict_lost_report, authenticated)
     if new_lost_report:
-        return ResponseModel(new_lost_report, "Lost report added successfully")
-    return ErrorResponseModel(
-        "Failed to add Lost Report", 500, "Failed to add Lost Report"
-    )
+        return Response(new_lost_report, "Lost report added successfully")
+    return ErrorResponse("Failed to add Lost Report", 500, "Failed to add Lost Report")
 
 
 @router.get("/reports/", response_description="Filter for Lost Reports")
@@ -264,7 +252,7 @@ async def get_lost_reports(
         "email": email,
     }
     lost_reports = await retrieve_lost_reports(dict_lost_report_filters, archived)
-    return ResponseModel(lost_reports, "Retrieved Lost Reports")
+    return Response(lost_reports, "Retrieved Lost Reports")
 
 
 @router.put("/report/found/{id}", response_description="Found a Lost Report")
@@ -275,8 +263,8 @@ async def found_lost_report_route(
 
     updated_lost_report = await found_lost_report(id)
     if updated_lost_report:
-        return ResponseModel(updated_lost_report, "Lost Report updated successfully")
-    return ErrorResponseModel(
+        return Response(updated_lost_report, "Lost Report updated successfully")
+    return ErrorResponse(
         "Failed to update Lost Report", 404, "Failed to update Lost Report"
     )
 
@@ -292,7 +280,7 @@ async def update_lost_report_route(
     dict_lost_report["location"] = dict_lost_report["location"].split(",")
     updated_lost_report = await update_lost_report_item(id, dict_lost_report)
     if updated_lost_report:
-        return ResponseModel(updated_lost_report, "Lost Report updated successfully")
-    return ErrorResponseModel(
+        return Response(updated_lost_report, "Lost Report updated successfully")
+    return ErrorResponse(
         "Failed to update Lost Report", 404, "Failed to update Lost Report"
     )
