@@ -2,12 +2,13 @@ from fastapi import HTTPException, status
 
 from server.database import database
 from server.helpers.db import get_next_sequence_value
+from server.models.loanertech import LoanerTechItemUnauthorized, LoanerTechItem
 
 sequence_id_collection = database.get_collection("sequence_id")
 loanertech_collection = database.get_collection("loanertech_collection")
 
 
-def loanertech_helper(loanertech: dict) -> dict:
+def loanertech_helper(loanertech: dict) -> LoanerTechItem:
     return {
         "id": loanertech["_id"],
         "in_office": loanertech["in_office"],
@@ -18,7 +19,7 @@ def loanertech_helper(loanertech: dict) -> dict:
     }
 
 
-def loanertech_helper_unprotected(loanertech: dict) -> dict:
+def loanertech_helper_unprotected(loanertech: dict) -> LoanerTechItemUnauthorized:
     return {
         "id": loanertech["_id"],
         "in_office": loanertech["in_office"],
@@ -27,7 +28,7 @@ def loanertech_helper_unprotected(loanertech: dict) -> dict:
 
 
 # Retrieve all loaner tech items present in the database with data for unauthenticated users
-async def retrieve_loanertechs_unauthenticated() -> list[dict]:
+async def retrieve_loanertechs_unauthenticated() -> list[LoanerTechItemUnauthorized]:
     loanertechs = []
     async for loanertech in loanertech_collection.find().sort("_id"):
         loanertechs.append(loanertech_helper_unprotected(loanertech))
@@ -35,7 +36,7 @@ async def retrieve_loanertechs_unauthenticated() -> list[dict]:
 
 
 # Retrieve all loaner tech items present in the database with data for authenticated users
-async def retrieve_loanertechs() -> list[dict]:
+async def retrieve_loanertechs() -> list[LoanerTechItem]:
     loanertechs = []
     async for loanertech in loanertech_collection.find().sort("_id"):
         loanertechs.append(loanertech_helper(loanertech))
@@ -43,7 +44,7 @@ async def retrieve_loanertechs() -> list[dict]:
 
 
 # Add a new loanertech item into to the database
-async def add_loanertech(loanertech_data: dict) -> dict:
+async def add_loanertech(loanertech_data: dict) -> LoanerTechItem:
     # Add the ID to the loanertech data
     loanertech_data["_id"] = await get_next_sequence_value(
         "loanertech_id", sequence_id_collection
@@ -66,7 +67,7 @@ async def add_loanertech(loanertech_data: dict) -> dict:
 
 
 # Retrieve a loanertech item with a matching ID
-async def retrieve_loanertech(id: int) -> dict | None:
+async def retrieve_loanertech(id: int) -> LoanerTechItem | None:
     loanertech = await loanertech_collection.find_one({"_id": id})
     if loanertech:
         return loanertech_helper(loanertech)

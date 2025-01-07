@@ -1,12 +1,11 @@
 from enum import Enum
 from datetime import datetime
-from typing import Annotated
-from pydantic import BeforeValidator, PlainSerializer
+from typing import Annotated, TypedDict
+from pydantic import BeforeValidator, PlainSerializer, BaseModel, EmailStr, Field
+from server.models import ResponseModel
 
-from pydantic import BaseModel, EmailStr, Field
 
-
-class LAFItem(BaseModel):
+class LAFItemRequest(BaseModel):
     type: str = Field(...)
     location: str = Field(...)
     description: str = Field(...)
@@ -40,7 +39,7 @@ class LAFArchiveItems(BaseModel):
         json_schema_extra = {"example": {"ids": ["1", "2", "3"]}}
 
 
-class LostReport(BaseModel):
+class LostReportRequest(BaseModel):
     type: str = Field(...)
     name: str = Field(...)
     email: EmailStr = Field(...)
@@ -90,3 +89,61 @@ DateString = Annotated[
     ),
     PlainSerializer(lambda x: x, return_type=str),
 ]
+
+
+class LAFItem(TypedDict):
+    id: int
+    type: str
+    display_id: str
+    location: str
+    date: str
+    description: str
+
+
+class ArchivedLAFItem(LAFItem):
+    found: bool
+    archived: str
+    name: str
+    email: EmailStr
+    returned: str
+
+
+class LostReportItem(TypedDict):
+    id: str
+    name: str
+    email: EmailStr
+    type: str
+    location: list[str]
+    date: str
+    description: str
+    found: bool
+    archived: bool
+
+
+class ExpiredItem(TypedDict):
+    expired: list[LAFItem]
+    potential: list[LAFItem]
+
+
+class LAFItemResponse(ResponseModel):
+    data: LAFItem
+
+
+class LAFItemsResponse(ResponseModel):
+    data: list[LAFItem]
+
+
+class ExpireLAFItemsReponse(ResponseModel):
+    data: ExpiredItem
+
+
+class ArchivedLAFItemsResponse(ResponseModel):
+    data: list[ArchivedLAFItem]
+
+
+class LostReportItemResponse(ResponseModel):
+    data: LostReportItem
+
+
+class LostReportItemsResponse(ResponseModel):
+    data: list[LostReportItem]

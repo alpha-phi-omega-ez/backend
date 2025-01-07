@@ -1,6 +1,7 @@
-from typing import Optional
-
+from os import name
+from typing import Optional, TypedDict
 from pydantic import BaseModel, EmailStr, Field
+from server.models import ResponseModel
 
 
 class LoanerTechCheckout(BaseModel):
@@ -31,7 +32,7 @@ class LoanerTechCheckin(BaseModel):
         }
 
 
-class LoanerTech(BaseModel):
+class LoanerTechRequest(BaseModel):
     description: str = Field(...)
 
     class Config:
@@ -40,3 +41,22 @@ class LoanerTech(BaseModel):
                 "description": "Apple 96 watt USB C charger",
             }
         }
+
+
+class LoanerTechItemUnauthorized(TypedDict):
+    id: int
+    in_office: bool
+    description: str
+
+
+class LoanerTechItem(TypedDict):
+    id: int
+    in_office: bool
+    description: str
+    phone: str
+    email: EmailStr
+    name: str
+
+
+class LoanerTechResponse(ResponseModel):
+    data: LoanerTechItem

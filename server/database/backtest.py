@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
-from typing import List
 
 from bson import ObjectId
 from fastapi import HTTPException
 
 from server.database import database
+from server.models.backtest import Course, Backtests
 
 backtest_course_code_collection = database.get_collection(
     "backtest_course_code_collection"
@@ -24,7 +24,7 @@ def course_helper(course) -> dict:
 
 
 # Retrieve all course codes present in the database
-async def retrieve_coursecodes() -> List[str]:
+async def retrieve_coursecodes() -> list[str]:
     if course_code_cache["datetime"] > datetime.now() - timedelta(hours=24):
         return course_code_cache["data"]
 
@@ -37,7 +37,7 @@ async def retrieve_coursecodes() -> List[str]:
     return course_codes
 
 
-async def retrieve_courses(course_code: str) -> List[dict]:
+async def retrieve_courses(course_code: str) -> list[Course]:
     if courses_cache.get(course_code) and courses_cache[course_code][
         "datetime"
     ] > datetime.now() - timedelta(hours=24):
@@ -52,7 +52,7 @@ async def retrieve_courses(course_code: str) -> List[dict]:
     return courses
 
 
-async def retrieve_backtest(backtest_id: str) -> List[dict]:
+async def retrieve_backtest(backtest_id: str) -> list[Backtests]:
     backtest = await backtest_collection.find_one(
         {"course_ids": {"$in": [ObjectId(backtest_id)]}}
     )

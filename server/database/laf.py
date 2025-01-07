@@ -1,7 +1,7 @@
 import re
 from asyncio import gather
 from datetime import datetime, timedelta
-from typing import List, Union
+from typing import Union
 
 from bson import ObjectId
 from fastapi import HTTPException, status
@@ -12,6 +12,7 @@ from server.helpers.db import (
     datetime_time_delta,
     get_next_sequence_value,
 )
+from server.models.laf import LAFItem, ArchivedLAFItem, ExpiredItem, LostReportItem
 
 sequence_id_collection = database.get_collection("sequence_id")
 laf_items_collection = database.get_collection("laf_items")
@@ -68,7 +69,7 @@ async def get_type_from_id(id: ObjectId) -> dict:
 
 
 # Helper functions to convert MongoDB documents to Python dictionaries
-async def laf_helper(laf: dict) -> dict:
+async def laf_helper(laf: dict) -> LAFItem:
     date = laf["date"]
     laf_type = await get_type_from_id(laf["type_id"])
 
@@ -82,20 +83,27 @@ async def laf_helper(laf: dict) -> dict:
     }
 
 
-async def laf_archived_helper(laf: dict) -> dict:
+async def laf_archived_helper(laf: dict) -> ArchivedLAFItem:
     returned_date = laf["returned"]
-    laf_data = await laf_helper(laf)
-    laf_data["found"] = laf["found"]
-    laf_data["archived"] = laf["archived"]
-    laf_data["name"] = laf["name"]
-    laf_data["email"] = laf["email"]
-    laf_data["returned"] = (
-        f"{returned_date[5:7]}/{returned_date[8:]}/{returned_date[:4]}",
-    )
-    return laf_data
+    date = laf["date"]
+    laf_type = await get_type_from_id(laf["type_id"])
+
+    return {
+        "id": laf["_id"],
+        "type": laf_type["type"],
+        "display_id": f"{laf_type["letter"]}{laf["_id"]}",
+        "location": laf["location"],
+        "date": f"{date[5:7]}/{date[8:]}/{date[:4]}",
+        "description": laf["description"],
+        "found": laf["found"],
+        "archived": laf["archived"],
+        "name": laf["name"],
+        "email": laf["email"],
+        "returned": f"{returned_date[5:7]}/{returned_date[8:]}/{returned_date[:4]}",
+    }
 
 
-async def lost_report_helper(lost_report: dict) -> dict:
+async def lost_report_helper(lost_report: dict) -> LostReportItem:
     date = lost_report["date"]
     laf_type = await get_type_from_id(lost_report["type_id"])
 
@@ -116,7 +124,7 @@ async def lost_report_helper(lost_report: dict) -> dict:
 
 
 # Add a new laf item into to the database
-async def add_laf(laf_data: dict) -> dict:
+async def add_laf(laf_data: dict) -> LAFItem:
     type_id = await get_type_id(laf_data["type"])
     del laf_data["type"]
 
@@ -151,7 +159,7 @@ async def update_laf(laf_id: str, laf_data: dict, now: datetime) -> bool:
         )
 
     laf_data["updated"] = now
-    if laf_data["type"]:
+    if laf_data.get("type", False):
         type_id = await get_type_id(laf_data["type"])
         del laf_data["type"]
         laf_data["type_id"] = type_id
@@ -252,7 +260,7 @@ type_expiration_mapping = {
 }
 
 
-async def fetch_expired_laf_items(expired_query: dict) -> List[dict]:
+async def fetch_expired_laf_items(expired_query: dict) -> list[LAFItem]:
     expired_laf_items = []
     async for laf_item in (
         laf_items_collection.find(expired_query).sort("date", -1).limit(30)
@@ -264,7 +272,7 @@ async def fetch_expired_laf_items(expired_query: dict) -> List[dict]:
 
 async def fetch_potentially_expired_laf_items(
     potentially_expired_query: dict,
-) -> List[dict]:
+) -> list[LAFItem]:
     potentially_expired_laf_items = []
     async for laf_item in (
         laf_items_collection.find(potentially_expired_query).sort("date", -1).limit(30)
@@ -281,7 +289,7 @@ async def retrieve_expired_laf(
     inexpensive_expiration: int,
     expensive_expiration: int,
     type: str,
-) -> dict[str, list]:
+) -> ExpiredItem:
     now = datetime.now()
 
     if type == "All":
@@ -385,7 +393,7 @@ async def retrieve_expired_laf(
 
 
 # Add a new lost report into to the database
-async def add_lost_report(lost_report_data: dict, auth: bool) -> dict:
+async def add_lost_report(lost_report_data: dict, auth: bool) -> LostReportItem:
     type_id = await get_type_id(lost_report_data["type"])
     del lost_report_data["type"]
     now = datetime.now()
@@ -418,7 +426,7 @@ async def update_lost_report(
 
     lost_report_data["updated"] = now
     lost_report_data["viewed"] = True
-    if lost_report_data["type"]:
+    if lost_report_data.get("type", False):
         type_id = await get_type_id(lost_report_data["type"])
         del lost_report_data["type"]
         lost_report_data["type_id"] = type_id
@@ -485,7 +493,7 @@ async def retrieve_lost_reports(
     return lost_reports
 
 
-async def retrieve_laf_types() -> List[str]:
+async def retrieve_laf_types() -> list[str]:
     now = datetime.now()
     if laf_type_cache["datetime"] > now - timedelta(hours=24):
         return laf_type_cache["data"]
@@ -521,7 +529,7 @@ async def delete_laf_type(laf_type: str) -> bool:
     return laf_type_deleted.deleted_count > 0
 
 
-async def retrieve_laf_locations() -> List[str]:
+async def retrieve_laf_locations() -> list[str]:
     now = datetime.now()
     if laf_locations_cache["datetime"] > now - timedelta(hours=24):
         return laf_locations_cache["data"]

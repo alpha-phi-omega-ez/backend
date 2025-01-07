@@ -1,6 +1,7 @@
-from typing import Any, Tuple
+from typing import Tuple
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 
 from server.database.loanertech import (
@@ -12,16 +13,24 @@ from server.database.loanertech import (
     update_loanertech,
 )
 from server.helpers.auth import required_auth, simple_auth_check
-from server.helpers.responses import Response, ErrorResponse
-from server.models.loanertech import LoanerTech, LoanerTechCheckin, LoanerTechCheckout
+from server.models.loanertech import (
+    LoanerTechRequest,
+    LoanerTechCheckin,
+    LoanerTechCheckout,
+    LoanerTechResponse,
+)
+from server.models import BoolResponse
 
 router = APIRouter()
 
 
-@router.get("/", response_description="LoanerTech list retrieved")
+@router.get(
+    "/",
+    response_description="LoanerTech list retrieved",
+)
 async def get_loanertechs(
     auth: Tuple[bool, str, dict | None] = Depends(simple_auth_check)
-) -> dict[str, Any]:
+) -> JSONResponse:
     authenticated = auth[0]
 
     loanertechs = (
@@ -29,132 +38,126 @@ async def get_loanertechs(
         if authenticated
         else await retrieve_loanertechs_unauthenticated()
     )
-    if loanertechs:
-        return Response(loanertechs, "LoanerTech data retrieved successfully")
-    return Response(loanertechs, "Empty list returned")
+    return JSONResponse(
+        {"data": loanertechs, "message": "LoanerTech data retrieved successfully"}
+    )
 
 
-@router.post("/", response_description="LoanerTech data added into the database")
+@router.post(
+    "/",
+    response_description="LoanerTech data added into the database",
+    response_model=LoanerTechResponse,
+)
 async def add_loanertech_data(
-    loanertech: LoanerTech = Body(...),
+    loanertech: LoanerTechRequest = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> LoanerTechResponse:
 
     dict_loanertech = jsonable_encoder(loanertech)
     new_loanertech = await add_loanertech(dict_loanertech)
-    return Response(new_loanertech, "LoanerTech added successfully.")
+    return LoanerTechResponse(
+        data=new_loanertech, message="LoanerTech added successfully."
+    )
 
 
 @router.get("/{id}", response_description="LoanerTech data retrieved")
-async def get_loanertech_data(id: int) -> dict[str, Any]:
+async def get_loanertech_data(id: int) -> LoanerTechResponse:
     loanertech = await retrieve_loanertech(id)
     if loanertech:
-        return Response(loanertech, "LoanerTech data retrieved successfully")
-    return ErrorResponse("An error occurred.", 404, "LoanerTech doesn't exist.")
+        return LoanerTechResponse(
+            data=loanertech, message="LoanerTech data retrieved successfully"
+        )
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, detail="Failed to find loanertech"
+    )
 
 
-@router.put("/update/{id}")
+@router.put(
+    "/update/{id}",
+    response_description="LoanerTech data updated",
+    response_model=BoolResponse,
+)
 async def update_loanertech_data(
     id: int,
-    req: LoanerTech = Body(...),
+    req: LoanerTechRequest = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
     dict_req = jsonable_encoder(req)
-    updated_loanertech = await update_loanertech(id, dict_req)
-    if updated_loanertech:
-        return Response(
-            f"LoanerTech with ID: {id} name update is successful",
-            "LoanerTech name updated successfully",
-        )
-    return ErrorResponse(
-        "An error occurred",
-        404,
-        "There was an error updating the loanertech data.",
+    if await update_loanertech(id, dict_req):
+        return BoolResponse(data=True, message="LoanerTech name updated successfully")
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, detail="Failed to update loanertech"
     )
 
 
 @router.delete(
-    "/delete/{id}", response_description="LoanerTech data deleted from the database"
+    "/delete/{id}",
+    response_description="LoanerTech data deleted from the database",
+    response_model=BoolResponse,
 )
 async def delete_loanertech_data(
     id: int,
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
-    deleted_loanertech = await delete_loanertech(id)
-    if deleted_loanertech:
-        return Response(
-            f"LoanerTech with ID: {id} removed", "LoanTech deleted successfully"
-        )
-    return ErrorResponse(
-        "An error occurred", 404, f"LoanerTech with id {id} doesn't exist"
+    if await delete_loanertech(id):
+        return BoolResponse(data=True, message="LoanerTech deleted successfully")
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Failed to add checkout loanertech",
     )
 
 
-@router.put("/checkout")
+@router.put(
+    "/checkout",
+    response_description="Checked out LAF items",
+    response_model=BoolResponse,
+)
 async def checkout_loanertech(
     req: LoanerTechCheckout = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
     dict_req = jsonable_encoder(req)
-    success = True
-    ids = []
+    item = {
+        "in_office": False,
+        "phone": dict_req["phone_number"],
+        "email": dict_req["email"],
+        "name": dict_req["name"],
+    }
     for id in dict_req["ids"]:
-        item = {
-            "in_office": False,
-            "phone": dict_req["phone_number"],
-            "email": dict_req["email"],
-            "name": dict_req["name"],
-        }
-        updated_loanertech = await update_loanertech(id, item)
-        ids.append(id)
-        if not updated_loanertech:
-            success = False
-            break
+        if not await update_loanertech(id, item):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to add checkout loanertech",
+            )
 
-    if success:
-        return Response(
-            f"LoanerTech with IDs: {ids} checked out",
-            "LoanerTech checked out successfully",
-        )
-    return ErrorResponse(
-        "An error occurred",
-        500,
-        "There was an error checking out the loanertech data.",
-    )
+    return BoolResponse(data=True, message="LoanerTech checked out successfully")
 
 
-@router.put("/checkin")
+checkin_item = {
+    "in_office": True,
+    "phone": "",
+    "email": "",
+    "name": "",
+}
+
+
+@router.put(
+    "/checkin", response_description="Checked in LAF items", response_model=BoolResponse
+)
 async def checkin_loanertech(
     req: LoanerTechCheckin = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
     dict_req = jsonable_encoder(req)
-    success = True
-    ids = []
     for id in dict_req["ids"]:
-        item = {
-            "in_office": True,
-            "phone": "",
-            "email": "",
-            "name": "",
-        }
-        updated_loanertech = await update_loanertech(id, item)
-        ids.append(id)
-        if not updated_loanertech:
-            success = False
-            break
+        if not await update_loanertech(id, checkin_item):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to add checking loanertech",
+            )
 
-    if success:
-        return Response(
-            f"LoanerTech with IDs: {ids} checked in",
-            "LoanerTech checked in successfully",
-        )
-    return ErrorResponse(
-        "An error occurred",
-        500,
-        "There was an error checking in the loanertech data.",
-    )
+    return BoolResponse(data=True, message="LoanerTech checked in successfully")

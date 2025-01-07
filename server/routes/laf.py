@@ -1,6 +1,6 @@
-from typing import Any, List, Optional, Tuple
+from typing import Optional, Tuple
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 
 from server.database.laf import (
@@ -22,17 +22,22 @@ from server.database.laf import (
     update_lost_report_item,
 )
 from server.helpers.auth import required_auth, simple_auth_check
-from server.helpers.responses import ErrorResponse, Response
 from server.models.laf import (
     DateFilter,
     DateString,
     LAFArchiveItems,
     LAFFoundItem,
-    LAFItem,
+    LAFItemRequest,
     LAFLocation,
     LAFType,
-    LostReport,
+    LostReportRequest,
+    LAFItemResponse,
+    LAFItemsResponse,
+    ExpireLAFItemsReponse,
+    LostReportItemResponse,
+    LostReportItemsResponse,
 )
+from server.models import BoolResponse, StringListResponse
 
 router = APIRouter()
 
@@ -40,103 +45,135 @@ router = APIRouter()
 # LAF Type routes
 
 
-@router.get("/types/", response_description="LAF types list retrieved")
-async def get_laf_types() -> dict[str, Any]:
+@router.get(
+    "/types/",
+    response_description="LAF types list retrieved",
+    response_model=StringListResponse,
+)
+async def get_laf_types() -> StringListResponse:
     laf_types = await retrieve_laf_types()
-    return Response(laf_types, "Laf types data retrieved successfully")
+    return StringListResponse(
+        data=laf_types, message="Laf types data retrieved successfully"
+    )
 
 
-@router.post("/type/", response_description="Created a new LAF Type")
+@router.post(
+    "/type/",
+    response_description="Created a new LAF Type",
+    response_model=BoolResponse,
+)
 async def new_laf_type(
     laf_type: LAFType = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
     dict_laf_type = jsonable_encoder(laf_type)
-    new_type = await add_laf_type(dict_laf_type["type"])
-    if new_type:
-        return Response(new_type, "LAF type added successfully")
-    return ErrorResponse("Failed to add LAF type", 500, "Failed to add LAF type")
+    if await add_laf_type(dict_laf_type["type"]):
+        return BoolResponse(data=True, message="LAF type added successfully")
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Failed to add LAF type",
+    )
 
 
-@router.delete("/type/", response_description="Delete a LAF type")
+@router.delete(
+    "/type/", response_description="Delete a LAF type", response_model=BoolResponse
+)
 async def delete_laf_type_route(
     laf_type: LAFType = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
     dict_laf_type = jsonable_encoder(laf_type)
     if await delete_laf_type(dict_laf_type["location"]):
-        return Response({"delete": True}, "LAF location added successfully")
-    return ErrorResponse("Failed to delete LAF type", 500, "Failed to delete LAF type")
+        return BoolResponse(data=True, message="LAF location added successfully")
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Failed to delete LAF type",
+    )
 
 
 # LAF Location routes
 
 
-@router.get("/locations/", response_description="LAF locations list retrieved")
-async def get_laf_locations() -> dict[str, Any]:
+@router.get(
+    "/locations/",
+    response_description="LAF locations list retrieved",
+    response_model=StringListResponse,
+)
+async def get_laf_locations() -> StringListResponse:
     laf_locations = await retrieve_laf_locations()
-    return Response(laf_locations, "Laf locations data retrieved successfully")
+    return StringListResponse(
+        data=laf_locations, message="Laf locations data retrieved successfully"
+    )
 
 
-@router.post("/location/", response_description="Created a new LAF Location")
+@router.post(
+    "/location/",
+    response_description="Created a new LAF Location",
+    response_model=BoolResponse,
+)
 async def new_laf_location(
     laf_location: LAFLocation = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
     dict_laf_location = jsonable_encoder(laf_location)
-    new_location = await add_laf_location(dict_laf_location["location"])
-    if new_location:
-        return Response(new_location, "LAF location added successfully")
-    return ErrorResponse(
-        "Failed to add LAF location", 500, "Failed to add LAF location"
-    )
+    if await add_laf_location(dict_laf_location["location"]):
+        return BoolResponse(data=True, message="LAF location added successfully")
+    raise HTTPException(status_code=500, detail="Failed to add LAF location")
 
 
-@router.delete("/location/", response_description="Delete a LAF location")
+@router.delete(
+    "/location/",
+    response_description="Delete a LAF location",
+    response_model=BoolResponse,
+)
 async def delete_laf_location_route(
     laf_location: LAFLocation = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
     dict_laf_location = jsonable_encoder(laf_location)
     if await delete_laf_location(dict_laf_location["location"]):
-        return Response({"delete": True}, "LAF location added successfully")
-    return ErrorResponse(
-        "Failed to delete LAF location", 500, "Failed to delete LAF location"
-    )
+        return BoolResponse(data=True, message="LAF location added successfully")
+    raise HTTPException(status_code=500, detail="Failed to delete LAF location")
 
 
 # LAF Item routes
 
 
-@router.post("/item/", response_description="Created a new LAF item")
+@router.post(
+    "/item/",
+    response_description="Created a new LAF item",
+    response_model=LAFItemResponse,
+)
 async def new_laf_item(
-    laf_item: LAFItem = Body(...),
+    laf_item: LAFItemRequest = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> LAFItemResponse:
 
     dict_laf = jsonable_encoder(laf_item)
     new_laf_item = await add_laf(dict_laf)
-    if new_laf_item:
-        return Response(new_laf_item, "LAF added successfully")
-    return ErrorResponse("Failed to add LAF item", 500, "Failed to add LAF item")
+    return LAFItemResponse(data=new_laf_item, message="LAF added successfully")
 
 
-@router.get("/items/", response_description="Filter for LAF items")
+@router.get(
+    "/items/",
+    response_description="Filter for LAF items",
+    response_model=LAFItemsResponse,
+)
 async def get_laf_items(
     date: Optional[DateString] = Query(None, description="Date of the item"),
     dateFilter: Optional[DateFilter] = Query(None, description="Filter for date"),
-    location: Optional[List[str]] = Query(
+    location: Optional[list[str]] = Query(
         None, description="List of possible locations"
     ),
     description: Optional[str] = Query(None, description="Description of the item"),
     type: Optional[str] = Query(None, description="Type of the item"),
     archived: bool = Query(False, description="Archived items"),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> LAFItemsResponse:
 
     dict_laf_filters = {
         "date": date,
@@ -147,10 +184,14 @@ async def get_laf_items(
     }
 
     laf_items = await retrieve_laf_items(dict_laf_filters, archived)
-    return Response(laf_items, "Retrieved LAF items")
+    return LAFItemsResponse(data=laf_items, message="Retrieved LAF items")
 
 
-@router.get("/items/expired/", response_description="Filter for LAF items")
+@router.get(
+    "/items/expired/",
+    response_description="Filter for LAF items",
+    response_model=ExpireLAFItemsReponse,
+)
 async def get_laf_items_expired(
     water_bottle: int = Query(30, description="Water Bottle days to expiration"),
     clothing: int = Query(90, description="Clothing days to expiration"),
@@ -159,62 +200,73 @@ async def get_laf_items_expired(
     expensive: int = Query(365, description="Expensive days to expiration"),
     type: str = Query("All", description="Type of the item"),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> ExpireLAFItemsReponse:
 
     laf_items = await retrieve_expired_laf(
         water_bottle, clothing, umbrella, inexpensive, expensive, type
     )
-    return Response(laf_items, "Retrieved expired LAF items")
+    return ExpireLAFItemsReponse(data=laf_items, message="Retrieved expired LAF items")
 
 
-@router.put("/item/found/{id}", response_description="Found a LAF item")
+@router.put(
+    "/item/found/{id}",
+    response_description="Found a LAF item",
+    response_model=BoolResponse,
+)
 async def found_laf_item_route(
     id: str,
     laf_found: LAFFoundItem = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
     laf_found_dict = jsonable_encoder(laf_found)
-    updated_laf_item = await found_laf_item(id, laf_found_dict)
-    if updated_laf_item:
-        return Response({"suceeded": updated_laf_item}, "LAF item updated successfully")
-    return ErrorResponse("Failed to update LAF item", 500, "Failed to update LAF item")
+    if await found_laf_item(id, laf_found_dict):
+        return BoolResponse(data=True, message="LAF item updated successfully")
+    raise HTTPException(status_code=500, detail="Failed to mark LAF item as found")
 
 
-@router.put("/item/{id}", response_description="Update a LAF item")
+@router.put(
+    "/item/{id}", response_description="Update a LAF item", response_model=BoolResponse
+)
 async def update_laf_item_route(
     id: str,
-    laf_item: LAFItem = Body(...),
+    laf_item: LAFItemRequest = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
     dict_laf = jsonable_encoder(laf_item)
-    updated_laf_item = await update_laf_item(id, dict_laf)
-    if updated_laf_item:
-        return Response({"suceeded": updated_laf_item}, "LAF item updated successfully")
-    return ErrorResponse("Failed to update LAF item", 500, "Failed to update LAF item")
+    if await update_laf_item(id, dict_laf):
+        return BoolResponse(data=True, message="LAF item updated successfully")
+    raise HTTPException(status_code=500, detail="Failed to update LAF")
 
 
-@router.post("/items/archive/", response_description="Archive LAF items")
+@router.post(
+    "/items/archive/",
+    response_description="Archive LAF items",
+    response_model=BoolResponse,
+)
 async def archive_laf_items_route(
     laf_items: LAFArchiveItems = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
     dict_laf = jsonable_encoder(laf_items)
-
     await archive_laf_items(dict_laf["ids"])
-    return Response({"archive": True}, "LAF items archived successfully")
+    return BoolResponse(data=True, message="LAF items archived successfully")
 
 
 # Lost Report Routes
 
 
-@router.post("/report/", response_description="Created a new Lost Report")
+@router.post(
+    "/report/",
+    response_description="Created a new Lost Report",
+    response_model=LostReportItemResponse,
+)
 async def new_lost_report(
-    lost_report: LostReport = Body(...),
+    lost_report: LostReportRequest = Body(...),
     auth: Tuple[bool, str, dict | None] = Depends(simple_auth_check),
-) -> dict[str, Any]:
+) -> LostReportItemResponse:
     authenticated = auth[0]
 
     dict_lost_report = jsonable_encoder(lost_report)
@@ -222,16 +274,20 @@ async def new_lost_report(
         location.strip() for location in dict_lost_report["location"].split(",")
     ]
     new_lost_report = await add_lost_report(dict_lost_report, authenticated)
-    if new_lost_report:
-        return Response(new_lost_report, "Lost report added successfully")
-    return ErrorResponse("Failed to add Lost Report", 500, "Failed to add Lost Report")
+    return LostReportItemResponse(
+        data=new_lost_report, message="Lost report added successfully"
+    )
 
 
-@router.get("/reports/", response_description="Filter for Lost Reports")
+@router.get(
+    "/reports/",
+    response_description="Filter for Lost Reports",
+    response_model=LostReportItemsResponse,
+)
 async def get_lost_reports(
     date: Optional[DateString] = Query(None, description="Date of the item"),
     dateFilter: Optional[DateFilter] = Query(None, description="Filter for date"),
-    location: Optional[List[str]] = Query(
+    location: Optional[list[str]] = Query(
         None, description="List of possible locations"
     ),
     description: Optional[str] = Query(None, description="Description of the item"),
@@ -240,7 +296,7 @@ async def get_lost_reports(
     email: Optional[str] = Query(None, description="Email of the owner"),
     archived: bool = Query(False, description="Archived items"),
     auth: bool = Depends(required_auth),
-) -> dict[str, Any]:
+) -> LostReportItemsResponse:
 
     dict_lost_report_filters = {
         "date": date,
@@ -252,35 +308,37 @@ async def get_lost_reports(
         "email": email,
     }
     lost_reports = await retrieve_lost_reports(dict_lost_report_filters, archived)
-    return Response(lost_reports, "Retrieved Lost Reports")
+    return LostReportItemsResponse(data=lost_reports, message="Retrieved Lost Reports")
 
 
-@router.put("/report/found/{id}", response_description="Found a Lost Report")
+@router.put(
+    "/report/found/{id}",
+    response_description="Found a Lost Report",
+    response_model=BoolResponse,
+)
 async def found_lost_report_route(
     id: str,
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
-    updated_lost_report = await found_lost_report(id)
-    if updated_lost_report:
-        return Response(updated_lost_report, "Lost Report updated successfully")
-    return ErrorResponse(
-        "Failed to update Lost Report", 404, "Failed to update Lost Report"
-    )
+    if await found_lost_report(id):
+        return BoolResponse(data=True, message="Lost Report updated successfully")
+    raise HTTPException(status_code=500, detail="Failed to mark a Lost Report as found")
 
 
-@router.put("/report/{id}", response_description="Update a Lost Report")
+@router.put(
+    "/report/{id}",
+    response_description="Update a Lost Report",
+    response_model=BoolResponse,
+)
 async def update_lost_report_route(
     id: str,
-    lost_report: LostReport = Body(...),
+    lost_report: LostReportRequest = Body(...),
     auth: dict = Depends(required_auth),
-) -> dict[str, Any]:
+) -> BoolResponse:
 
     dict_lost_report = jsonable_encoder(lost_report)
     dict_lost_report["location"] = dict_lost_report["location"].split(",")
-    updated_lost_report = await update_lost_report_item(id, dict_lost_report)
-    if updated_lost_report:
-        return Response(updated_lost_report, "Lost Report updated successfully")
-    return ErrorResponse(
-        "Failed to update Lost Report", 404, "Failed to update Lost Report"
-    )
+    if await update_lost_report_item(id, dict_lost_report):
+        return BoolResponse(data=True, message="Lost Report updated successfully")
+    raise HTTPException(status_code=500, detail="Failed to update a Lost Report")
