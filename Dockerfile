@@ -9,8 +9,8 @@ COPY server/ /app/server/
 COPY main.py .
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://0.0.0.0:8000 || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://0.0.0.0:9000 || exit 1
 
-EXPOSE 8000
+EXPOSE 9000
 
 CMD ["python", "main.py"]
