@@ -1,14 +1,15 @@
+from pydantic import BaseModel
 from typing import Any
 
 
-def ResponseModel(data: Any, message: str, authed: bool = False) -> dict[str, Any]:
-    return {
-        "data": data,
-        "code": 200,
-        "message": message,
-        "loggedIn": authed,
-    }
+class ResponseModel(BaseModel):
+    data: Any
+    message: str
 
 
-def ErrorResponseModel(error: str, code: int, message: str) -> dict[str, Any]:
-    return {"error": error, "code": code, "message": message}
+class BoolResponse(ResponseModel):
+    data: bool
+
+
+class StringListResponse(ResponseModel):
+    data: list[str]

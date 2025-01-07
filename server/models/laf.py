@@ -1,9 +1,11 @@
 from enum import Enum
+from datetime import datetime
+from typing import Annotated, TypedDict
+from pydantic import BeforeValidator, PlainSerializer, BaseModel, EmailStr, Field
+from server.models import ResponseModel
 
-from pydantic import BaseModel, EmailStr, Field, constr
 
-
-class LAFItem(BaseModel):
+class LAFItemRequest(BaseModel):
     type: str = Field(...)
     location: str = Field(...)
     description: str = Field(...)
@@ -37,7 +39,7 @@ class LAFArchiveItems(BaseModel):
         json_schema_extra = {"example": {"ids": ["1", "2", "3"]}}
 
 
-class LostReport(BaseModel):
+class LostReportRequest(BaseModel):
     type: str = Field(...)
     name: str = Field(...)
     email: EmailStr = Field(...)
@@ -53,7 +55,7 @@ class LostReport(BaseModel):
                 "email": "glump@rpi.edu",
                 "description": "Red sweater",
                 "date": "2024-09-01",
-                "location": ["Union", "DCC"],
+                "location": "Union,DCC",
             }
         }
 
@@ -77,18 +79,71 @@ class DateFilter(str, Enum):
     after = "After"
 
 
-class DateString(str):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+DateString = Annotated[
+    str,
+    BeforeValidator(lambda x: None if x is None else str(x)),
+    BeforeValidator(
+        lambda x: (
+            x if x is None else datetime.strptime(x, "%Y-%m-%d").strftime("%Y-%m-%d")
+        )
+    ),
+    PlainSerializer(lambda x: x, return_type=str),
+]
 
-    @classmethod
-    def validate(cls, value, field):
-        try:
-            # Ensure the value matches the format YYYY-MM-DD
-            from datetime import datetime
 
-            datetime.strptime(value, "%Y-%m-%d")
-            return value
-        except ValueError:
-            raise ValueError("Invalid date format. Expected YYYY-MM-DD.")
+class LAFItem(TypedDict):
+    id: int
+    type: str
+    display_id: str
+    location: str
+    date: str
+    description: str
+
+
+class ArchivedLAFItem(LAFItem):
+    found: bool
+    archived: str
+    name: str
+    email: EmailStr
+    returned: str
+
+
+class LostReportItem(TypedDict):
+    id: str
+    name: str
+    email: EmailStr
+    type: str
+    location: list[str]
+    date: str
+    description: str
+    found: bool
+    archived: bool
+
+
+class ExpiredItem(TypedDict):
+    expired: list[LAFItem]
+    potential: list[LAFItem]
+
+
+class LAFItemResponse(ResponseModel):
+    data: LAFItem
+
+
+class LAFItemsResponse(ResponseModel):
+    data: list[LAFItem]
+
+
+class ExpireLAFItemsReponse(ResponseModel):
+    data: ExpiredItem
+
+
+class ArchivedLAFItemsResponse(ResponseModel):
+    data: list[ArchivedLAFItem]
+
+
+class LostReportItemResponse(ResponseModel):
+    data: LostReportItem
+
+
+class LostReportItemsResponse(ResponseModel):
+    data: list[LostReportItem]
