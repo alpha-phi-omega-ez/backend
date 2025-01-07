@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
-import jwt
-from fastapi import APIRouter, Body, HTTPException, Request
+from typing import Tuple
+from fastapi import APIRouter, Body, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi_sso.sso.google import GoogleSSO
 from starlette import status
@@ -9,12 +9,11 @@ from starlette.requests import Request as StarletteRequest
 
 from server.config import settings
 from server.helpers.auth import (
-    BlacklistedTokenException,
     blacklist_token,
     create_access_token,
     generate_temporary_code,
     validate_code_and_get_user_email,
-    validate_token,
+    simple_auth_check,
 )
 from server.models.auth import TokenRequest
 
@@ -46,7 +45,9 @@ async def google_login(request: Request) -> RedirectResponse:
 
 
 @router.get("/callback", response_description="Google callback")
-async def google_callback(star_request: StarletteRequest, request: Request):
+async def google_callback(
+    star_request: StarletteRequest, request: Request
+) -> RedirectResponse:
     redirect_url = request.query_params.get("redirect", "/")
 
     with google_sso:
@@ -64,8 +65,8 @@ async def google_callback(star_request: StarletteRequest, request: Request):
     )
 
 
-@router.post("/token")
-async def exchange_code_for_token(token: TokenRequest = Body(...)):
+@router.post("/token", response_description="Exchange code for token")
+async def exchange_code_for_token(token: TokenRequest = Body(...)) -> JSONResponse:
     user_email = await validate_code_and_get_user_email(token.code)
     if not user_email:
         raise HTTPException(status_code=400, detail="Invalid code")
@@ -92,7 +93,7 @@ async def exchange_code_for_token(token: TokenRequest = Body(...)):
     return response
 
 
-@router.post("/logout")
+@router.post("/logout", response_description="Logout")
 async def logout(request: Request, response: Response) -> JSONResponse:
     # Add the token to a blacklist or invalidation list
     token = request.cookies.get("authToken")
@@ -107,19 +108,8 @@ async def logout(request: Request, response: Response) -> JSONResponse:
     )
 
 
-@router.get("/auth/check")
-async def check_auth(request: Request) -> dict[str, bool]:
-    token = request.cookies.get("authToken")
-
-    if token:
-        try:
-            await validate_token(token)  # Your JWT validation function
-            return {"authenticated": True}
-        except (
-            jwt.ExpiredSignatureError,
-            jwt.InvalidTokenError,
-            BlacklistedTokenException,
-        ):
-            return {"authenticated": False}
-
-    return {"authenticated": False}
+@router.get("/auth/check", response_description="Check if user is authenticated")
+async def check_auth(
+    auth: Tuple[bool, str, dict | None] = Depends(simple_auth_check)
+) -> JSONResponse:
+    return JSONResponse({"authenticated": auth[0]})
