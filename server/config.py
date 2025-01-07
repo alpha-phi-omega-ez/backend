@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     ORIGINS: str = "http://localhost:3000"
     MONGO_DETAILS: str = "mongodb://localhost:27017"
     FRONTEND_URL: str = "http://localhost:3000"
-    BACKEND_URL: str = "http://localhost:8000"
+    BACKEND_URL: str = "http://localhost:9000"
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 4

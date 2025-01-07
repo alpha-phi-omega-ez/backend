@@ -45,10 +45,8 @@ async def google_login(request: Request) -> RedirectResponse:
 
 
 @router.get("/callback", response_description="Google callback")
-async def google_callback(
-    star_request: StarletteRequest, request: Request
-) -> RedirectResponse:
-    redirect_url = request.query_params.get("redirect", "/")
+async def google_callback(star_request: StarletteRequest) -> RedirectResponse:
+    redirect_url = star_request.query_params.get("redirect", "/")
 
     with google_sso:
         user = await google_sso.verify_and_process(star_request)
