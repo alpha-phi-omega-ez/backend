@@ -78,8 +78,7 @@ async def exchange_code_for_token(token: TokenRequest = Body(...)) -> JSONRespon
         expires_delta=access_token_expires,
     )
 
-    # secure = not settings.TESTING # READD FOR PRODUCTION
-    secure = False  # REMOVE FOR PRODUCTION
+    secure = not settings.TESTING  # READD FOR PRODUCTION
     max_age = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     response = JSONResponse(content={"message": "Login successful"})
     response.set_cookie(
