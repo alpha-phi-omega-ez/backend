@@ -237,7 +237,7 @@ async def water_bottle_expiration_query(wb: int, c: int, u: int, now: datetime) 
     }
 
 
-async def apparel_expiration_query(wb: int, c: int, u: int, now: datetime) -> dict:
+async def attire_expiration_query(wb: int, c: int, u: int, now: datetime) -> dict:
     cutoff_date = await datetime_time_delta(now, c)
     return {
         "type": "Apparel",
@@ -255,8 +255,8 @@ async def umbrella_expiration_query(wb: int, c: int, u: int, now: datetime) -> d
 
 type_expiration_mapping = {
     "Water Bottle": water_bottle_expiration_query,
-    "Apparel": apparel_expiration_query,
-    "Umbrella": umbrella_expiration_query,
+    "Attire": attire_expiration_query,
+    "Umbrellas": umbrella_expiration_query,
 }
 
 
@@ -284,7 +284,7 @@ async def fetch_potentially_expired_laf_items(
 
 async def retrieve_expired_laf(
     water_bottle_expiration: int,
-    clothing_expiration: int,
+    attire_expiration: int,
     umbrella_expiration: int,
     inexpensive_expiration: int,
     expensive_expiration: int,
@@ -297,25 +297,30 @@ async def retrieve_expired_laf(
         wb, a, u, expensive_cutoff_date, inexpensive_cutoff_date = await gather(
             water_bottle_expiration_query(
                 water_bottle_expiration,
-                clothing_expiration,
+                attire_expiration,
                 umbrella_expiration,
                 now,
             ),
-            apparel_expiration_query(
+            attire_expiration_query(
                 water_bottle_expiration,
-                clothing_expiration,
+                attire_expiration,
                 umbrella_expiration,
                 now,
             ),
             umbrella_expiration_query(
                 water_bottle_expiration,
-                clothing_expiration,
+                attire_expiration,
                 umbrella_expiration,
                 now,
             ),
             datetime_time_delta(now, expensive_expiration),
             datetime_time_delta(now, inexpensive_expiration),
         )
+
+        type_ids = []
+        for type in type_expiration_mapping.keys():
+            type_id = await get_type_id(type)
+            type_ids.append(type_id)
 
         expired_query = {
             "archived": False,
@@ -324,7 +329,7 @@ async def retrieve_expired_laf(
                 a,
                 u,
                 {
-                    "type": {"$nin": list(type_expiration_mapping.keys())},
+                    "type_id": {"$nin": type_ids},
                     "date": {"$lte": expensive_cutoff_date},
                 },
             ],
@@ -349,7 +354,7 @@ async def retrieve_expired_laf(
         query = {"archived": False}
         query.update(
             await type_expiration_mapping[type](
-                water_bottle_expiration, clothing_expiration, umbrella_expiration, now
+                water_bottle_expiration, attire_expiration, umbrella_expiration, now
             )
         )
 
@@ -367,15 +372,16 @@ async def retrieve_expired_laf(
         datetime_time_delta(now, inexpensive_expiration),
     )
 
+    type_id = await get_type_id(type)
     expired_query = {
         "archived": False,
         "date": {"$lte": expensive_cutoff_date},
-        "type": type,
+        "type_id": type_id,
     }
     potentially_expired_query = {
         "archived": False,
         "date": {"$lte": inexpensive_cutoff_date, "$gt": expensive_cutoff_date},
-        "type": type,
+        "type_id": type_id,
     }
 
     expired_laf_items, potentially_expired_laf_items = await gather(
