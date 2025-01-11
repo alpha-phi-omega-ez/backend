@@ -231,24 +231,29 @@ async def retrieve_laf_items(laf_query_data: dict, archived: bool = False) -> li
 
 async def water_bottle_expiration_query(wb: int, c: int, u: int, now: datetime) -> dict:
     cutoff_date = await datetime_time_delta(now, wb)
+    type_id = await get_type_id("Water Bottle")
     return {
-        "type": "Water Bottle",
+        "type_id": type_id,
         "date": {"$lte": cutoff_date},
     }
 
 
 async def attire_expiration_query(wb: int, c: int, u: int, now: datetime) -> dict:
     cutoff_date = await datetime_time_delta(now, c)
+    type_id = await get_type_id("Attire")
+
     return {
-        "type": "Apparel",
+        "type_id": type_id,
         "date": {"$lte": cutoff_date},
     }
 
 
 async def umbrella_expiration_query(wb: int, c: int, u: int, now: datetime) -> dict:
     cutoff_date = await datetime_time_delta(now, u)
+    type_id = await get_type_id("Umbrellas")
+
     return {
-        "type": "Umbrella",
+        "type_id": type_id,
         "date": {"$lte": cutoff_date},
     }
 
