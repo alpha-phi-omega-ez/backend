@@ -364,7 +364,9 @@ async def retrieve_expired_laf(
         )
 
         laf_items = []
-        async for laf_item in laf_items_collection.find(query).sort("date", -1):
+        async for laf_item in (
+            laf_items_collection.find(query).sort("date", -1).limit(30)
+        ):
             laf_items.append(await laf_helper(laf_item))
 
         return {
