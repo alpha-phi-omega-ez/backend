@@ -242,7 +242,7 @@ async def update_laf_item_route(
     raise HTTPException(status_code=500, detail="Failed to update LAF")
 
 
-@router.post(
+@router.put(
     "/items/archive/",
     response_description="Archive LAF items",
     response_model=BoolResponse,
@@ -257,8 +257,8 @@ async def archive_laf_items_route(
     return BoolResponse(data=True, message="LAF items archived successfully")
 
 
-@router.post(
-    "items/archive/{id}",
+@router.put(
+    "/item/archive/{id}",
     response_description="Archive LAF item",
     response_model=BoolResponse,
 )
