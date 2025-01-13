@@ -172,6 +172,7 @@ async def get_laf_items(
     description: Optional[str] = Query(None, description="Description of the item"),
     type: Optional[str] = Query(None, description="Type of the item"),
     archived: bool = Query(False, description="Archived items"),
+    id: Optional[int] = Query(None, description="ID of the item"),
     auth: dict = Depends(required_auth),
 ) -> LAFItemsResponse:
 
@@ -181,6 +182,7 @@ async def get_laf_items(
         "location": location,
         "description": description,
         "type": type,
+        "id": id,
     }
 
     laf_items = await retrieve_laf_items(dict_laf_filters, archived)
@@ -253,6 +255,18 @@ async def archive_laf_items_route(
     dict_laf = jsonable_encoder(laf_items)
     await archive_laf_items(dict_laf["ids"])
     return BoolResponse(data=True, message="LAF items archived successfully")
+
+
+@router.post(
+    "items/archive/{id}",
+    response_description="Archive LAF item",
+    response_model=BoolResponse,
+)
+async def archive_single_laf_item(
+    id: str, auth: dict = Depends(required_auth)
+) -> BoolResponse:
+    await archive_laf_items([id])
+    return BoolResponse(data=True, message="LAF item archived successfully")
 
 
 # Lost Report Routes
