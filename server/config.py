@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = str(os.urandom(32))
     ALGORITHM: str = "HS256"
     TESTING: bool = os.getenv("TESTING", "False").lower() in ("true", "1", "t")
+    ROOT_PATH: str = os.getenv("ROOT_PATH", "")
 
     model_config = SettingsConfigDict(env_file=".env")
 

@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
     # Any cleanup logic can go here
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, root_path=settings.ROOT_PATH)
 
 # Add CORS middleware to FastAPI
 app.add_middleware(
