@@ -212,12 +212,15 @@ laf_item_query_mapping = {
 
 # Retrieve all relevant laf items from the database
 async def retrieve_laf_items(laf_query_data: dict, archived: bool = False) -> list:
-    query: dict[str, Union[bool, dict, ObjectId, str]] = {"archived": archived}
-    async for k, v in async_dict_itr(laf_query_data):
-        if v is not None and k in laf_item_query_mapping:
-            query.update(laf_item_query_mapping[k](v, laf_query_data))
-        elif k == "type" and v:
-            query["type_id"] = await get_type_id(v)
+    query: dict[str, Union[bool, dict, ObjectId, str, int]] = {"archived": archived}
+    if laf_query_data["id"]:
+        query["_id"] = int(laf_query_data["id"])
+    else:
+        async for k, v in async_dict_itr(laf_query_data):
+            if v is not None and k in laf_item_query_mapping:
+                query.update(laf_item_query_mapping[k](v, laf_query_data))
+            elif k == "type" and v:
+                query["type_id"] = await get_type_id(v)
 
     laf_items = []
     # Use .skip before limit for pagination
