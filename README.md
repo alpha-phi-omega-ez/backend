@@ -44,6 +44,20 @@ or
 uv run fastapi dev --port 9000
 ```
 
+# Linting and formatting
+
+This project uses ruff for linting in pull requests via github actions, it is recommended that you run format with ruff and/or install ruff in VSCode of your code editor and setup editor formatting using ruff.
+
+Lint
+```bash
+ruff check server
+```
+
+Format
+```bash
+ruff format server
+```
+
 ## Authors
 
 - [**Rafael Cenzano**](https://github.com/RafaelCenzano)
