@@ -1,6 +1,7 @@
 import re
 from asyncio import gather
 from datetime import datetime, timedelta
+from aiocache import cached
 from typing import Union
 
 from bson import ObjectId
@@ -25,8 +26,6 @@ laf_matching_collection = database.get_collection("laf_matching")
 laf_type_cache = {
     "datetime": datetime(1970, 1, 1),
     "data": [],
-    "map_to_id": {},
-    "map_to_type": {},
 }
 laf_locations_cache = {"datetime": datetime(1970, 1, 1), "data": []}
 
@@ -38,13 +37,9 @@ async def laf_db_setup() -> None:
     await lost_reports_collection.create_index([("description", "text")])
 
 
+# Cache for 1 hour
+@cached(ttl=3600)
 async def get_type_id(type_in: str) -> ObjectId:
-    # Attempt to retrieve result from cache
-    map_to_id = laf_type_cache["map_to_id"]
-    if type_in in map_to_id:
-        return map_to_id[type_in]
-
-    # If the cache doesn't have the item fetch from the DB
     laf_type = await laf_types_collection.find_one({"type": type_in})
     if not laf_type:
         raise HTTPException(
@@ -53,13 +48,9 @@ async def get_type_id(type_in: str) -> ObjectId:
     return laf_type["_id"]
 
 
+# Cache for 1 day
+@cached(ttl=86400)
 async def get_type_from_id(id: ObjectId) -> dict:
-    # Attempt to retrieve result from cache
-    map_to_type = laf_type_cache["map_to_type"]
-    if id in map_to_type:
-        return map_to_type[id]
-
-    # If the cache doesn't have the item fetch from the DB
     laf_type = await laf_types_collection.find_one({"_id": id})
     if not laf_type:
         raise HTTPException(
@@ -526,8 +517,6 @@ async def retrieve_laf_types() -> list[str]:
 
     laf_type_cache["datetime"] = now
     laf_type_cache["data"] = laf_types
-    laf_type_cache["map_to_id"] = laf_type_mapping_type
-    laf_type_cache["map_to_type"] = laf_type_mapping_id
     return laf_types
 
 
