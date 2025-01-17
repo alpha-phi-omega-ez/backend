@@ -2,19 +2,32 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import sentry_sdk
 
 from server.config import settings
-from server.database import db_setup
+from server.database.laf import laf_db_setup
 from server.routes.auth import router as AuthRouter
 from server.routes.backtest import router as BacktestRouter
 from server.routes.laf import router as LAFRouter
 from server.routes.loanertech import router as LoanerTechRouter
 
 
+sentry_sdk.init(
+    dsn=settings.SENTRY_DSN,
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=settings.SENTRY_TRACE_RATE,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=settings.SENTRY_PROFILE_RATE,
+)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # This runs during the startup phase
-    await db_setup()
+    await laf_db_setup()
     yield  # Application runs here
     # This runs during the shutdown phase
     # Any cleanup logic can go here

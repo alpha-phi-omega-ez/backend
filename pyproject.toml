@@ -1,0 +1,15 @@
+[project]
+name = "APOEZ_Website_Backend"
+version = "1.0.0"
+description = "backend to handle lost and found, backtests, and loaner teach"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiocache>=0.12.3",
+    "fastapi-sso>=0.17.0",
+    "fastapi[standard]>=0.115.6",
+    "motor>=3.6.1",
+    "pydantic-settings>=2.7.1",
+    "pyjwt>=2.10.1",
+    "sentry-sdk[fastapi]>=2.20.0",
+]

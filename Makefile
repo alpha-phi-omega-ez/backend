@@ -1,11 +1,8 @@
 init:
 	pip3 install -r requirements.txt
 
-clean:
-	pystarter clean
-
-develop: clean
-	python3 main.py
+develop:
+	uv run fastapi dev --port 9000
 
 start_db:
 	mongod --dbpath db/data --logpath db/logs/mongodb.log
