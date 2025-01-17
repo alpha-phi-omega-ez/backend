@@ -14,4 +14,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 
 EXPOSE 9000
 
-CMD ["/app/.venv/bin/fastapi", "run", "server/main.py", "--port", "9000", "--host", "0.0.0.0"]
+CMD ["/app/.venv/bin/fastapi", "run", "main.py", "--port", "9000", "--host", "0.0.0.0"]
