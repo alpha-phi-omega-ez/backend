@@ -28,7 +28,7 @@ jobs:
       - name: "Check for Container Exit Code"
         id: check_exit_code
         run: |
-          echo "::set-output name=exit_code::$(docker inspect apoez-backend-container --format='{{.State.ExitCode}}')"
+          docker inspect apoez-backend-container --format='{{.State.ExitCode}}'
           docker rm apoez-backend-container
 
       - name: "Fail if Container Fails"
