@@ -24,16 +24,10 @@ The Config type can be changed to match the environment it is being run in, with
 
 ### Requirements
 
-Use pip to install needed libraries
+Use uv to install needed libraries
 
 ```
-make
-```
-
-or
-
-```
-pip install -r requirements.txt
+uv install
 ```
 
 ### Run the service
@@ -47,7 +41,7 @@ make develop
 or
 
 ```
-python3 main.py
+uv run fastapi dev --port 9000
 ```
 
 ## Authors
