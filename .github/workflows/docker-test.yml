@@ -5,8 +5,8 @@ on:
     paths:
       - "**.py"
       - "Dockerfile"
-      - "run.sh"
-      - "requirements.txt"
+      - "uv.lock"
+      - ".python-version"
 
 jobs:
   build:
@@ -26,11 +26,11 @@ jobs:
           docker stop apoez-backend-container
       
       - name: "Check for Container Exit Code"
+        id: check_exit_code
         run: |
           docker inspect apoez-backend-container --format='{{.State.ExitCode}}'
           docker rm apoez-backend-container
-        id: exit_code
 
       - name: "Fail if Container Fails"
-        if: steps.exit_code.outputs.exit_code != '0'
+        if: steps.check_exit_code.outputs.exit_code != '0'
         run: exit 1

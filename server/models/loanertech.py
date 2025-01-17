@@ -1,6 +1,7 @@
-from os import name
 from typing import Optional, TypedDict
+
 from pydantic import BaseModel, EmailStr, Field
+
 from server.models import ResponseModel
 
 

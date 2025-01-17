@@ -1,6 +1,7 @@
 import re
 from asyncio import gather
 from datetime import datetime, timedelta
+from aiocache import cached
 from typing import Union
 
 from bson import ObjectId
@@ -12,7 +13,7 @@ from server.helpers.db import (
     datetime_time_delta,
     get_next_sequence_value,
 )
-from server.models.laf import LAFItem, ArchivedLAFItem, ExpiredItem, LostReportItem
+from server.models.laf import ArchivedLAFItem, ExpiredItem, LAFItem, LostReportItem
 
 sequence_id_collection = database.get_collection("sequence_id")
 laf_items_collection = database.get_collection("laf_items")
@@ -25,8 +26,6 @@ laf_matching_collection = database.get_collection("laf_matching")
 laf_type_cache = {
     "datetime": datetime(1970, 1, 1),
     "data": [],
-    "map_to_id": {},
-    "map_to_type": {},
 }
 laf_locations_cache = {"datetime": datetime(1970, 1, 1), "data": []}
 
@@ -38,13 +37,9 @@ async def laf_db_setup() -> None:
     await lost_reports_collection.create_index([("description", "text")])
 
 
+# Cache for 1 hour
+@cached(ttl=3600)
 async def get_type_id(type_in: str) -> ObjectId:
-    # Attempt to retrieve result from cache
-    map_to_id = laf_type_cache["map_to_id"]
-    if type_in in map_to_id:
-        return map_to_id[type_in]
-
-    # If the cache doesn't have the item fetch from the DB
     laf_type = await laf_types_collection.find_one({"type": type_in})
     if not laf_type:
         raise HTTPException(
@@ -53,13 +48,9 @@ async def get_type_id(type_in: str) -> ObjectId:
     return laf_type["_id"]
 
 
+# Cache for 1 day
+@cached(ttl=86400)
 async def get_type_from_id(id: ObjectId) -> dict:
-    # Attempt to retrieve result from cache
-    map_to_type = laf_type_cache["map_to_type"]
-    if id in map_to_type:
-        return map_to_type[id]
-
-    # If the cache doesn't have the item fetch from the DB
     laf_type = await laf_types_collection.find_one({"_id": id})
     if not laf_type:
         raise HTTPException(
@@ -76,7 +67,7 @@ async def laf_helper(laf: dict) -> LAFItem:
     return {
         "id": laf["_id"],
         "type": laf_type["type"],
-        "display_id": f"{laf_type["letter"]}{laf["_id"]}",
+        "display_id": f"{laf_type['letter']}{laf['_id']}",
         "location": laf["location"],
         "date": f"{date[5:7]}/{date[8:]}/{date[:4]}",
         "description": laf["description"],
@@ -91,7 +82,7 @@ async def laf_archived_helper(laf: dict) -> ArchivedLAFItem:
     return {
         "id": laf["_id"],
         "type": laf_type["type"],
-        "display_id": f"{laf_type["letter"]}{laf["_id"]}",
+        "display_id": f"{laf_type['letter']}{laf['_id']}",
         "location": laf["location"],
         "date": f"{date[5:7]}/{date[8:]}/{date[:4]}",
         "description": laf["description"],
@@ -301,7 +292,6 @@ async def retrieve_expired_laf(
     now = datetime.now()
 
     if type == "All":
-
         wb, a, u, expensive_cutoff_date, inexpensive_cutoff_date = await gather(
             water_bottle_expiration_query(
                 water_bottle_expiration,
@@ -527,8 +517,6 @@ async def retrieve_laf_types() -> list[str]:
 
     laf_type_cache["datetime"] = now
     laf_type_cache["data"] = laf_types
-    laf_type_cache["map_to_id"] = laf_type_mapping_type
-    laf_type_cache["map_to_type"] = laf_type_mapping_id
     return laf_types
 
 

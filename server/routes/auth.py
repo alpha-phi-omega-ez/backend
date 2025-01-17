@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
-
 from typing import Tuple
-from fastapi import APIRouter, Body, HTTPException, Request, Depends
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi_sso.sso.google import GoogleSSO
 from starlette import status
@@ -12,8 +12,8 @@ from server.helpers.auth import (
     blacklist_token,
     create_access_token,
     generate_temporary_code,
-    validate_code_and_get_user_email,
     simple_auth_check,
+    validate_code_and_get_user_email,
 )
 from server.models.auth import TokenRequest
 
@@ -109,6 +109,6 @@ async def logout(request: Request, response: Response) -> JSONResponse:
 
 @router.get("/auth/check", response_description="Check if user is authenticated")
 async def check_auth(
-    auth: Tuple[bool, str, dict | None] = Depends(simple_auth_check)
+    auth: Tuple[bool, str, dict | None] = Depends(simple_auth_check),
 ) -> JSONResponse:
     return JSONResponse({"authenticated": auth[0]})

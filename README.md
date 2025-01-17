@@ -24,16 +24,10 @@ The Config type can be changed to match the environment it is being run in, with
 
 ### Requirements
 
-Use pip to install needed libraries
+Use uv to install needed libraries
 
 ```
-make
-```
-
-or
-
-```
-pip install -r requirements.txt
+uv install
 ```
 
 ### Run the service
@@ -47,7 +41,21 @@ make develop
 or
 
 ```
-python3 main.py
+uv run fastapi dev --port 9000
+```
+
+# Linting and formatting
+
+This project uses ruff for linting in pull requests via github actions, it is recommended that you run format with ruff and/or install ruff in VSCode of your code editor and setup editor formatting using ruff.
+
+Lint
+```bash
+ruff check server
+```
+
+Format
+```bash
+ruff format server
 ```
 
 ## Authors

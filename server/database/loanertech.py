@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 
 from server.database import database
 from server.helpers.db import get_next_sequence_value
-from server.models.loanertech import LoanerTechItemUnauthorized, LoanerTechItem
+from server.models.loanertech import LoanerTechItem, LoanerTechItemUnauthorized
 
 sequence_id_collection = database.get_collection("sequence_id")
 loanertech_collection = database.get_collection("loanertech_collection")

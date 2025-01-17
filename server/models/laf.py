@@ -1,7 +1,9 @@
-from enum import Enum
 from datetime import datetime
+from enum import Enum
 from typing import Annotated, TypedDict
-from pydantic import BeforeValidator, PlainSerializer, BaseModel, EmailStr, Field
+
+from pydantic import BaseModel, BeforeValidator, EmailStr, Field, PlainSerializer
+
 from server.models import ResponseModel
 
 

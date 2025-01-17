@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     TESTING: bool = os.getenv("TESTING", "False").lower() in ("true", "1", "t")
     ROOT_PATH: str = os.getenv("ROOT_PATH", "")
+    SENTRY_DSN: str = os.getenv("SENTRY_DSN", "")
+    SENTRY_TRACE_RATE: float = float(os.getenv("SENTRY_TRACE_RATE", 1.0))
+    SENTRY_PROFILE_RATE: float = float(os.getenv("SENTRY_PROFILE_RATE", 1.0))
 
     model_config = SettingsConfigDict(env_file=".env")
 
