@@ -3,9 +3,9 @@ FROM python:3.13.1-alpine3.21
 # Install uv.
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-WORKDIR /app
+COPY . /app
 
-COPY . .
+WORKDIR /app
 
 RUN uv sync --frozen --no-cache
 
