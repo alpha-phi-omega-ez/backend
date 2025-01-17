@@ -1,8 +1,8 @@
 from typing import Tuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 
 from server.database.loanertech import (
     add_loanertech,
@@ -13,13 +13,13 @@ from server.database.loanertech import (
     update_loanertech,
 )
 from server.helpers.auth import required_auth, simple_auth_check
+from server.models import BoolResponse
 from server.models.loanertech import (
-    LoanerTechRequest,
     LoanerTechCheckin,
     LoanerTechCheckout,
+    LoanerTechRequest,
     LoanerTechResponse,
 )
-from server.models import BoolResponse
 
 router = APIRouter()
 
@@ -29,7 +29,7 @@ router = APIRouter()
     response_description="LoanerTech list retrieved",
 )
 async def get_loanertechs(
-    auth: Tuple[bool, str, dict | None] = Depends(simple_auth_check)
+    auth: Tuple[bool, str, dict | None] = Depends(simple_auth_check),
 ) -> JSONResponse:
     authenticated = auth[0]
 
@@ -52,7 +52,6 @@ async def add_loanertech_data(
     loanertech: LoanerTechRequest = Body(...),
     auth: dict = Depends(required_auth),
 ) -> LoanerTechResponse:
-
     dict_loanertech = jsonable_encoder(loanertech)
     new_loanertech = await add_loanertech(dict_loanertech)
     return LoanerTechResponse(
@@ -82,7 +81,6 @@ async def update_loanertech_data(
     req: LoanerTechRequest = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     dict_req = jsonable_encoder(req)
     if await update_loanertech(id, dict_req):
         return BoolResponse(data=True, message="LoanerTech name updated successfully")
@@ -100,7 +98,6 @@ async def delete_loanertech_data(
     id: int,
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     if await delete_loanertech(id):
         return BoolResponse(data=True, message="LoanerTech deleted successfully")
     raise HTTPException(
@@ -118,7 +115,6 @@ async def checkout_loanertech(
     req: LoanerTechCheckout = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     dict_req = jsonable_encoder(req)
     item = {
         "in_office": False,
@@ -151,7 +147,6 @@ async def checkin_loanertech(
     req: LoanerTechCheckin = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     dict_req = jsonable_encoder(req)
     for id in dict_req["ids"]:
         if not await update_loanertech(id, checkin_item):

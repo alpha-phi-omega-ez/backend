@@ -4,7 +4,7 @@ from bson import ObjectId
 from fastapi import HTTPException
 
 from server.database import database
-from server.models.backtest import Course, Backtests
+from server.models.backtest import Backtests, Course
 
 backtest_course_code_collection = database.get_collection(
     "backtest_course_code_collection"

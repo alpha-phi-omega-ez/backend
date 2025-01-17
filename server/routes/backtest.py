@@ -1,5 +1,3 @@
-from typing import Any
-
 from fastapi import APIRouter
 
 from server.database.backtest import (
@@ -8,7 +6,7 @@ from server.database.backtest import (
     retrieve_courses,
 )
 from server.models import StringListResponse
-from server.models.backtest import CoursesResponse, BacktestsReponse
+from server.models.backtest import BacktestsReponse, CoursesResponse
 
 router = APIRouter()
 

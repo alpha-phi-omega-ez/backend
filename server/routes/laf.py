@@ -1,6 +1,6 @@
 from typing import Optional, Tuple
 
-from fastapi import APIRouter, Body, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder
 
 from server.database.laf import (
@@ -22,22 +22,22 @@ from server.database.laf import (
     update_lost_report_item,
 )
 from server.helpers.auth import required_auth, simple_auth_check
+from server.models import BoolResponse, StringListResponse
 from server.models.laf import (
     DateFilter,
     DateString,
+    ExpireLAFItemsReponse,
     LAFArchiveItems,
     LAFFoundItem,
     LAFItemRequest,
-    LAFLocation,
-    LAFType,
-    LostReportRequest,
     LAFItemResponse,
     LAFItemsResponse,
-    ExpireLAFItemsReponse,
+    LAFLocation,
+    LAFType,
     LostReportItemResponse,
     LostReportItemsResponse,
+    LostReportRequest,
 )
-from server.models import BoolResponse, StringListResponse
 
 router = APIRouter()
 
@@ -66,7 +66,6 @@ async def new_laf_type(
     laf_type: LAFType = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     dict_laf_type = jsonable_encoder(laf_type)
     if await add_laf_type(dict_laf_type["type"]):
         return BoolResponse(data=True, message="LAF type added successfully")
@@ -83,7 +82,6 @@ async def delete_laf_type_route(
     laf_type: LAFType = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     dict_laf_type = jsonable_encoder(laf_type)
     if await delete_laf_type(dict_laf_type["location"]):
         return BoolResponse(data=True, message="LAF location added successfully")
@@ -117,7 +115,6 @@ async def new_laf_location(
     laf_location: LAFLocation = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     dict_laf_location = jsonable_encoder(laf_location)
     if await add_laf_location(dict_laf_location["location"]):
         return BoolResponse(data=True, message="LAF location added successfully")
@@ -133,7 +130,6 @@ async def delete_laf_location_route(
     laf_location: LAFLocation = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     dict_laf_location = jsonable_encoder(laf_location)
     if await delete_laf_location(dict_laf_location["location"]):
         return BoolResponse(data=True, message="LAF location added successfully")
@@ -152,7 +148,6 @@ async def new_laf_item(
     laf_item: LAFItemRequest = Body(...),
     auth: dict = Depends(required_auth),
 ) -> LAFItemResponse:
-
     dict_laf = jsonable_encoder(laf_item)
     new_laf_item = await add_laf(dict_laf)
     return LAFItemResponse(data=new_laf_item, message="LAF added successfully")
@@ -175,7 +170,6 @@ async def get_laf_items(
     id: Optional[int] = Query(None, description="ID of the item"),
     auth: dict = Depends(required_auth),
 ) -> LAFItemsResponse:
-
     dict_laf_filters = {
         "date": date,
         "dateFilter": dateFilter,
@@ -203,7 +197,6 @@ async def get_laf_items_expired(
     type: str = Query("All", description="Type of the item"),
     auth: dict = Depends(required_auth),
 ) -> ExpireLAFItemsReponse:
-
     laf_items = await retrieve_expired_laf(
         water_bottle, clothing, umbrella, inexpensive, expensive, type
     )
@@ -220,7 +213,6 @@ async def found_laf_item_route(
     laf_found: LAFFoundItem = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     laf_found_dict = jsonable_encoder(laf_found)
     if await found_laf_item(id, laf_found_dict):
         return BoolResponse(data=True, message="LAF item updated successfully")
@@ -235,7 +227,6 @@ async def update_laf_item_route(
     laf_item: LAFItemRequest = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     dict_laf = jsonable_encoder(laf_item)
     if await update_laf_item(id, dict_laf):
         return BoolResponse(data=True, message="LAF item updated successfully")
@@ -251,7 +242,6 @@ async def archive_laf_items_route(
     laf_items: LAFArchiveItems = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     dict_laf = jsonable_encoder(laf_items)
     await archive_laf_items(dict_laf["ids"])
     return BoolResponse(data=True, message="LAF items archived successfully")
@@ -311,7 +301,6 @@ async def get_lost_reports(
     archived: bool = Query(False, description="Archived items"),
     auth: bool = Depends(required_auth),
 ) -> LostReportItemsResponse:
-
     dict_lost_report_filters = {
         "date": date,
         "dateFilter": dateFilter,
@@ -334,7 +323,6 @@ async def found_lost_report_route(
     id: str,
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     if await found_lost_report(id):
         return BoolResponse(data=True, message="Lost Report updated successfully")
     raise HTTPException(status_code=500, detail="Failed to mark a Lost Report as found")
@@ -350,7 +338,6 @@ async def update_lost_report_route(
     lost_report: LostReportRequest = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-
     dict_lost_report = jsonable_encoder(lost_report)
     dict_lost_report["location"] = dict_lost_report["location"].split(",")
     if await update_lost_report_item(id, dict_lost_report):

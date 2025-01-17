@@ -12,7 +12,7 @@ from server.helpers.db import (
     datetime_time_delta,
     get_next_sequence_value,
 )
-from server.models.laf import LAFItem, ArchivedLAFItem, ExpiredItem, LostReportItem
+from server.models.laf import ArchivedLAFItem, ExpiredItem, LAFItem, LostReportItem
 
 sequence_id_collection = database.get_collection("sequence_id")
 laf_items_collection = database.get_collection("laf_items")
@@ -76,7 +76,7 @@ async def laf_helper(laf: dict) -> LAFItem:
     return {
         "id": laf["_id"],
         "type": laf_type["type"],
-        "display_id": f"{laf_type["letter"]}{laf["_id"]}",
+        "display_id": f"{laf_type['letter']}{laf['_id']}",
         "location": laf["location"],
         "date": f"{date[5:7]}/{date[8:]}/{date[:4]}",
         "description": laf["description"],
@@ -91,7 +91,7 @@ async def laf_archived_helper(laf: dict) -> ArchivedLAFItem:
     return {
         "id": laf["_id"],
         "type": laf_type["type"],
-        "display_id": f"{laf_type["letter"]}{laf["_id"]}",
+        "display_id": f"{laf_type['letter']}{laf['_id']}",
         "location": laf["location"],
         "date": f"{date[5:7]}/{date[8:]}/{date[:4]}",
         "description": laf["description"],
@@ -301,7 +301,6 @@ async def retrieve_expired_laf(
     now = datetime.now()
 
     if type == "All":
-
         wb, a, u, expensive_cutoff_date, inexpensive_cutoff_date = await gather(
             water_bottle_expiration_query(
                 water_bottle_expiration,
