@@ -1,7 +1,5 @@
-FROM python:3.13.1-alpine3.21
-
-# Install uv.
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# Use the latest uv image with python 3.13 and alpine
+FROM ghcr.io/astral-sh/uv:python3.13-alpine
 
 COPY . /app
 
