@@ -37,7 +37,7 @@ async def google_login(request: Request) -> RedirectResponse:
             url=f"{settings.FRONTEND_URL}/login/callback?code={code}&redirect={redirect_url}"
         )
 
-    with google_sso:
+    async with google_sso:
         login_stuff = await google_sso.get_login_redirect(
             params={"redirect": redirect_url}
         )
@@ -48,7 +48,7 @@ async def google_login(request: Request) -> RedirectResponse:
 async def google_callback(star_request: StarletteRequest) -> RedirectResponse:
     redirect_url = star_request.query_params.get("redirect", "/")
 
-    with google_sso:
+    async with google_sso:
         user = await google_sso.verify_and_process(star_request)
 
     if user is None or user.email is None:

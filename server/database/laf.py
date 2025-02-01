@@ -1,6 +1,6 @@
 import re
 from asyncio import gather
-from datetime import datetime, timedelta
+from datetime import datetime
 from aiocache import cached
 from typing import Union
 
@@ -21,13 +21,6 @@ lost_reports_collection = database.get_collection("lost_reports")
 laf_types_collection = database.get_collection("laf_types")
 laf_locations_collection = database.get_collection("laf_locations")
 laf_matching_collection = database.get_collection("laf_matching")
-
-
-laf_type_cache = {
-    "datetime": datetime(1970, 1, 1),
-    "data": [],
-}
-laf_locations_cache = {"datetime": datetime(1970, 1, 1), "data": []}
 
 
 async def laf_db_setup() -> None:
@@ -223,6 +216,7 @@ async def retrieve_laf_items(laf_query_data: dict, archived: bool = False) -> li
     return laf_items
 
 
+@cached(ttl=86400)
 async def water_bottle_expiration_query(wb: int, c: int, u: int, now: datetime) -> dict:
     cutoff_date = await datetime_time_delta(now, wb)
     type_id = await get_type_id("Water Bottle")
@@ -232,6 +226,7 @@ async def water_bottle_expiration_query(wb: int, c: int, u: int, now: datetime) 
     }
 
 
+@cached(ttl=86400)
 async def attire_expiration_query(wb: int, c: int, u: int, now: datetime) -> dict:
     cutoff_date = await datetime_time_delta(now, c)
     type_id = await get_type_id("Attire")
@@ -242,6 +237,7 @@ async def attire_expiration_query(wb: int, c: int, u: int, now: datetime) -> dic
     }
 
 
+@cached(ttl=86400)
 async def umbrella_expiration_query(wb: int, c: int, u: int, now: datetime) -> dict:
     cutoff_date = await datetime_time_delta(now, u)
     type_id = await get_type_id("Umbrellas")
@@ -499,25 +495,10 @@ async def retrieve_lost_reports(
     return lost_reports
 
 
+@cached(ttl=86400)
 async def retrieve_laf_types() -> list[str]:
-    now = datetime.now()
-    if laf_type_cache["datetime"] > now - timedelta(hours=24):
-        return laf_type_cache["data"]
-
-    laf_types = []
-    laf_type_mapping_type = {}
-    laf_type_mapping_id = {}
-    async for laf_type in laf_types_collection.find({"view": True}):
-        laf_types.append(laf_type["type"])
-        laf_type_mapping_type[laf_type["type"]] = laf_type["_id"]
-        laf_type_mapping_id[laf_type["_id"]] = {
-            "type": laf_type["type"],
-            "letter": laf_type["letter"],
-        }
-
-    laf_type_cache["datetime"] = now
-    laf_type_cache["data"] = laf_types
-    return laf_types
+    laf_types = await laf_types_collection.find({"view": True}).to_list(length=None)
+    return [laf_type["type"] for laf_type in laf_types]
 
 
 async def add_laf_type(laf_type: str) -> bool:
@@ -533,17 +514,9 @@ async def delete_laf_type(laf_type: str) -> bool:
     return laf_type_deleted.deleted_count > 0
 
 
+@cached(ttl=86400)
 async def retrieve_laf_locations() -> list[str]:
-    now = datetime.now()
-    if laf_locations_cache["datetime"] > now - timedelta(hours=24):
-        return laf_locations_cache["data"]
-
-    laf_locations = []
-    async for laf_tocation in laf_locations_collection.find():
-        laf_locations.append(laf_tocation["location"])
-
-    laf_locations_cache["datetime"] = now
-    laf_locations_cache["data"] = laf_locations
+    laf_locations = await laf_locations_collection.distinct("location")
     return laf_locations
 
 
