@@ -460,6 +460,25 @@ async def update_lost_report_item(lost_report_id: str, lost_report_data: dict) -
     return await update_lost_report(lost_report_id, lost_report_data, now)
 
 
+async def retrieve_new_lost_report_count() -> int:
+    return await lost_reports_collection.count_documents({"viewed": False})
+
+
+async def retrieve_new_lost_reports(limit: int = 30) -> list:
+    query = {"viewed": False}
+    lost_reports = []
+    async for laf_item in (
+        lost_reports_collection.find(query).sort("date", -1).limit(limit)
+    ):
+        lost_reports.append(await lost_report_helper(laf_item))
+    return lost_reports
+
+
+async def mark_lost_report_as_viewed(lost_report_id: str) -> bool:
+    now = datetime.now()
+    return await update_lost_report(lost_report_id, {"viewed": True}, now)
+
+
 lost_report_query_mapping = {
     "dateFilter": lambda v, lost_report_query_data: (
         {"date": {"$lte": lost_report_query_data["date"]}}
