@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     SENTRY_TRACE_RATE: float = float(os.getenv("SENTRY_TRACE_RATE", 1.0))
     SENTRY_PROFILE_RATE: float = float(os.getenv("SENTRY_PROFILE_RATE", 1.0))
 
+    # Define routes to exclude from tracing and profiling
+    EXCLUDED_ROUTES = {"/", "/openapi.json", "/docs"}
+
     model_config = SettingsConfigDict(env_file=".env")
 
 

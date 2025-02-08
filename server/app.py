@@ -12,15 +12,29 @@ from server.routes.laf import router as LAFRouter
 from server.routes.loanertech import router as LoanerTechRouter
 
 
+def traces_sampler(sampling_context) -> float:
+    transaction_name = sampling_context.get("transaction_context", {}).get("name")
+    if transaction_name and any(
+        transaction_name.endswith(route) for route in settings.EXCLUDED_ROUTES
+    ):
+        return 0.0
+    return settings.SENTRY_TRACE_RATE
+
+
+def profiles_sampler(sampling_context) -> float:
+    transaction_name = sampling_context.get("transaction_context", {}).get("name")
+    if transaction_name and any(
+        transaction_name.endswith(route) for route in settings.EXCLUDED_ROUTES
+    ):
+        return 0.0
+    return settings.SENTRY_PROFILE_RATE
+
+
 sentry_sdk.init(
     dsn=settings.SENTRY_DSN,
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for tracing.
-    traces_sample_rate=settings.SENTRY_TRACE_RATE,
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
+    traces_sampler=traces_sampler,
     profiles_sample_rate=settings.SENTRY_PROFILE_RATE,
+    profiles_sampler=profiles_sampler,
 )
 
 
