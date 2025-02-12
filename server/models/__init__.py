@@ -14,3 +14,7 @@ class BoolResponse(ResponseModel):
 
 class StringListResponse(ResponseModel):
     data: list[str]
+
+
+class IntResponse(ResponseModel):
+    data: int

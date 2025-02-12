@@ -20,9 +20,12 @@ from server.database.laf import (
     retrieve_lost_reports,
     update_laf_item,
     update_lost_report_item,
+    retrieve_new_lost_report_count,
+    retrieve_new_lost_reports,
+    mark_lost_report_as_viewed,
 )
 from server.helpers.auth import required_auth, simple_auth_check
-from server.models import BoolResponse, StringListResponse
+from server.models import BoolResponse, StringListResponse, IntResponse
 from server.models.laf import (
     DateFilter,
     DateString,
@@ -343,3 +346,41 @@ async def update_lost_report_route(
     if await update_lost_report_item(id, dict_lost_report):
         return BoolResponse(data=True, message="Lost Report updated successfully")
     raise HTTPException(status_code=500, detail="Failed to update a Lost Report")
+
+
+@router.get(
+    "/reports/new/count",
+    response_description="Get the number of new reports",
+    response_model=IntResponse,
+)
+async def get_new_report_count(auth: dict = Depends(required_auth)) -> IntResponse:
+    return IntResponse(
+        data=await retrieve_new_lost_report_count(),
+        message="Lost Report count retrieved",
+    )
+
+
+@router.get(
+    "/reports/new",
+    response_description="Get the new reports",
+    response_model=LostReportItemsResponse,
+)
+async def get_new_reports(
+    auth: dict = Depends(required_auth),
+) -> LostReportItemsResponse:
+    return LostReportItemsResponse(
+        data=await retrieve_new_lost_reports(), message="New Lost Reports retrieved"
+    )
+
+
+@router.put(
+    "/reports/new/viewed/{id}",
+    response_description="Mark a new lost report as viewed",
+    response_model=BoolResponse,
+)
+async def mark_new_report_as_viewed(
+    id: str, auth: dict = Depends(required_auth)
+) -> BoolResponse:
+    return BoolResponse(
+        data=await mark_lost_report_as_viewed(id), message="New report marked as viewed"
+    )

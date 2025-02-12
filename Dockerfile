@@ -1,5 +1,5 @@
-# Use the latest uv image with python 3.13 and alpine
-FROM ghcr.io/astral-sh/uv:python3.13-alpine
+# Use the latest uv image with python 3.13 and debian slim
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
 COPY . /app
 
