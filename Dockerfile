@@ -5,6 +5,10 @@ COPY . /app
 
 WORKDIR /app
 
+# Install wget
+RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+
+# Install the dependencies
 RUN uv sync --frozen --no-cache
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
