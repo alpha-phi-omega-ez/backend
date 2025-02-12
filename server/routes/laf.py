@@ -349,7 +349,7 @@ async def update_lost_report_route(
 
 
 @router.get(
-    "/report/new/count",
+    "/reports/new/count",
     response_description="Get the number of new reports",
     response_model=IntResponse,
 )
@@ -361,7 +361,7 @@ async def get_new_report_count(auth: dict = Depends(required_auth)) -> IntRespon
 
 
 @router.get(
-    "/report/new",
+    "/reports/new",
     response_description="Get the new reports",
     response_model=LostReportItemsResponse,
 )
@@ -374,7 +374,7 @@ async def get_new_reports(
 
 
 @router.put(
-    f"/report/new/viewed/{id}",
+    "/reports/new/viewed/{id}",
     response_description="Mark a new lost report as viewed",
     response_model=BoolResponse,
 )
