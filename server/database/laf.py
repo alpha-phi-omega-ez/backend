@@ -461,14 +461,17 @@ async def update_lost_report_item(lost_report_id: str, lost_report_data: dict) -
 
 
 async def retrieve_new_lost_report_count() -> int:
-    return await lost_reports_collection.count_documents({"viewed": False})
+    return await lost_reports_collection.count_documents(
+        {"viewed": False, "archived": False}
+    )
 
 
 async def retrieve_new_lost_reports(limit: int = 30) -> list:
-    query = {"viewed": False}
     lost_reports = []
     async for laf_item in (
-        lost_reports_collection.find(query).sort("date", -1).limit(limit)
+        lost_reports_collection.find({"viewed": False, "archived": False})
+        .sort("date", -1)
+        .limit(limit)
     ):
         lost_reports.append(await lost_report_helper(laf_item))
     return lost_reports
