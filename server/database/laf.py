@@ -115,6 +115,7 @@ async def add_laf(laf_data: dict) -> LAFItem:
     now = datetime.now()
 
     laf_data["_id"] = await get_next_sequence_value("laf_id", sequence_id_collection)
+    laf_data["description"] = laf_data["description"].strip()
     laf_data["found"] = False
     laf_data["archived"] = False
     laf_data["created"] = now
@@ -189,7 +190,7 @@ laf_item_query_mapping = {
     ),
     "location": lambda v, _: {"location": {"$in": v}},
     "description": lambda v, _: {
-        "description": {"$regex": re.escape(v), "$options": "i"}
+        "description": {"$regex": re.escape(v.strip()), "$options": "i"}
     },
 }
 
@@ -399,6 +400,9 @@ async def add_lost_report(lost_report_data: dict, auth: bool) -> LostReportItem:
     type_id = await get_type_id(lost_report_data["type"])
     del lost_report_data["type"]
     now = datetime.now()
+    lost_report_data["description"] = lost_report_data["description"].strip()
+    lost_report_data["name"] = lost_report_data["name"].strip()
+    lost_report_data["email"] = lost_report_data["email"].strip()
     lost_report_data["found"] = False
     lost_report_data["archived"] = False
     lost_report_data["created"] = now
@@ -489,11 +493,11 @@ lost_report_query_mapping = {
         else {"date": {"$gte": lost_report_query_data["date"]}}
     ),
     "description": lambda v, _: {
-        "description": {"$regex": re.escape(v), "$options": "i"}
+        "description": {"$regex": re.escape(v.strip()), "$options": "i"}
     },
     "location": lambda v, _: {"location": {"$in": v}},
-    "name": lambda v, _: {"name": {"$regex": re.escape(v), "$options": "i"}},
-    "email": lambda v, _: {"email": {"$regex": re.escape(v), "$options": "i"}},
+    "name": lambda v, _: {"name": {"$regex": re.escape(v.strip()), "$options": "i"}},
+    "email": lambda v, _: {"email": {"$regex": re.escape(v.strip()), "$options": "i"}},
 }
 
 
