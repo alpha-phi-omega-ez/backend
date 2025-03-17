@@ -13,21 +13,24 @@ cd backend
 
 ### Environment Variables
 
-Create environment variable through a .env file or other methods
+Create environment variable through a .env file or via the export command
 
 ```
-SECRET_KEY = "[[RANDOM STRING]]" # for testing/development a random one will automatically be generated
-CONFIG = "config.TestingConfig"
+SECRET_KEY = "<random-string>" # for testing/development a random one will automatically be generated
+GOOGLE_CLIENT_ID="<google-client-id>" # for google login
+GOOGLE_CLIENT_SECRET="<google-client-secret>" # for google login
+TESTING="True" # set for testing true or false
+SENTRY_DSN="<sentry-dsn>" # for tracing and reporting on errors
 ```
 
 The Config type can be changed to match the environment it is being run in, with the current options being TestingConfig and ProductionConfig.
 
 ### Requirements
 
-Use uv to install needed libraries
+Use [uv](https://docs.astral.sh/uv/getting-started/installation/) to install needed libraries
 
 ```
-uv install
+uv sync
 ```
 
 ### Run the service
@@ -64,4 +67,4 @@ ruff format server
 
 ## License
 
-This project is licensed under the GNU Public License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the GNU Affero Public License - see the [LICENSE](LICENSE) file for details
