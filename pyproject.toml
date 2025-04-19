@@ -14,3 +14,16 @@ dependencies = [
     "ruff>=0.9.2",
     "sentry-sdk[fastapi]>=2.20.0",
 ]
+
+[tool.ruff]
+line-length = 88
+fix = true
+
+[tool.ruff.lint]
+select = ["I", "F", "E"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
