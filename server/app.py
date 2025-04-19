@@ -1,8 +1,8 @@
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import sentry_sdk
 
 from server.config import settings
 from server.database.laf import laf_db_setup
