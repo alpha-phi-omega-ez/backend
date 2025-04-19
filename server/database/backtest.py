@@ -1,5 +1,4 @@
 from aiocache import cached
-
 from bson import ObjectId
 from fastapi import HTTPException
 

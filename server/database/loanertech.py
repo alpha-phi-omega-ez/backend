@@ -27,7 +27,8 @@ def loanertech_helper_unprotected(loanertech: dict) -> LoanerTechItemUnauthorize
     }
 
 
-# Retrieve all loaner tech items present in the database with data for unauthenticated users
+# Retrieve all loaner tech items present in the database with data
+# for unauthenticated users
 async def retrieve_loanertechs_unauthenticated() -> list[LoanerTechItemUnauthorized]:
     loanertechs = []
     async for loanertech in loanertech_collection.find().sort("_id"):
@@ -35,7 +36,8 @@ async def retrieve_loanertechs_unauthenticated() -> list[LoanerTechItemUnauthori
     return loanertechs
 
 
-# Retrieve all loaner tech items present in the database with data for authenticated users
+# Retrieve all loaner tech items present in the database with
+# data for authenticated users
 async def retrieve_loanertechs() -> list[LoanerTechItem]:
     loanertechs = []
     async for loanertech in loanertech_collection.find().sort("_id"):

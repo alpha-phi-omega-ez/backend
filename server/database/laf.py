@@ -1,9 +1,9 @@
 import re
 from asyncio import gather
 from datetime import datetime
-from aiocache import cached
 from typing import Union
 
+from aiocache import cached
 from bson import ObjectId
 from fastapi import HTTPException, status
 

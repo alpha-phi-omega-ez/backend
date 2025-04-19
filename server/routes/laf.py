@@ -13,19 +13,19 @@ from server.database.laf import (
     delete_laf_type,
     found_laf_item,
     found_lost_report,
+    mark_lost_report_as_viewed,
     retrieve_expired_laf,
     retrieve_laf_items,
     retrieve_laf_locations,
     retrieve_laf_types,
     retrieve_lost_reports,
-    update_laf_item,
-    update_lost_report_item,
     retrieve_new_lost_report_count,
     retrieve_new_lost_reports,
-    mark_lost_report_as_viewed,
+    update_laf_item,
+    update_lost_report_item,
 )
 from server.helpers.auth import required_auth, simple_auth_check
-from server.models import BoolResponse, StringListResponse, IntResponse
+from server.models import BoolResponse, IntResponse, StringListResponse
 from server.models.laf import (
     DateFilter,
     DateString,
