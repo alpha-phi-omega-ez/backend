@@ -3,7 +3,7 @@ name = "APOEZ_Website_Backend"
 version = "1.0.0"
 description = "backend to handle lost and found, backtests, and loaner teach"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = "~=3.13"
 dependencies = [
     "aiocache>=0.12.3",
     "fastapi-sso>=0.17.0",
