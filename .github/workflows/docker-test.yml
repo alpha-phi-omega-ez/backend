@@ -7,6 +7,7 @@ on:
       - "Dockerfile"
       - "uv.lock"
       - ".python-version"
+      - "pyproject.toml"
 
 permissions:
   contents: read
