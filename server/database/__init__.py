@@ -1,7 +1,7 @@
-import motor.motor_asyncio
+from pymongo import AsyncMongoClient
 
 from server.config import settings
 
-client = motor.motor_asyncio.AsyncIOMotorClient(settings.MONGO_DETAILS)
+client = AsyncMongoClient(settings.MONGO_DETAILS)
 
 database = client.apo_main
