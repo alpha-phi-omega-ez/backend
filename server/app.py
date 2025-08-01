@@ -1,3 +1,4 @@
+import sys
 from contextlib import asynccontextmanager
 
 import sentry_sdk
@@ -6,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from server.config import settings
 from server.database.laf import laf_db_setup
+from server.database.valkey import valkey_setup
 from server.routes.auth import router as AuthRouter
 from server.routes.backtest import router as BacktestRouter
 from server.routes.laf import router as LAFRouter
@@ -30,18 +32,20 @@ def profiles_sampler(sampling_context) -> float:
     return settings.SENTRY_PROFILE_RATE
 
 
-sentry_sdk.init(
-    dsn=settings.SENTRY_DSN,
-    traces_sampler=traces_sampler,
-    profiles_sample_rate=settings.SENTRY_PROFILE_RATE,
-    profiles_sampler=profiles_sampler,
-)
+if not ("pytest" in sys.modules or settings.TESTING):
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        traces_sampler=traces_sampler,
+        profiles_sample_rate=settings.SENTRY_PROFILE_RATE,
+        profiles_sampler=profiles_sampler,
+    )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # This runs during the startup phase
     await laf_db_setup()
+    await valkey_setup(app)
     yield  # Application runs here
     # This runs during the shutdown phase
     # Any cleanup logic can go here
