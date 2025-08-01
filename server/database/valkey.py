@@ -12,7 +12,7 @@ async def valkey_setup(app: FastAPI) -> None:
     print("Connecting to Valkey...")
     try:
         # Configure and create the Valkey client instance
-        addresses = [NodeAddress("127.0.0.1", 6379)]
+        addresses = [NodeAddress(settings.VALKEY_ADDRESS, 6379)]
         config = GlideClientConfiguration(addresses=addresses)
         client = await GlideClient.create(config)
 
