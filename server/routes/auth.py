@@ -8,12 +8,14 @@ from starlette import status
 from starlette.requests import Request as StarletteRequest
 
 from server.config import settings
-from server.helpers.auth import (
-    blacklist_token,
-    create_access_token,
+from server.database.valkey import (
+    add_token_to_blacklist,
     generate_temporary_code,
-    simple_auth_check,
     validate_code_and_get_user_email,
+)
+from server.helpers.auth import (
+    create_access_token,
+    simple_auth_check,
 )
 from server.models.auth import TokenRequest
 
@@ -31,8 +33,8 @@ async def google_login(request: Request) -> RedirectResponse:
     redirect_url = request.query_params.get("redirect", "/")
 
     if settings.TESTING:
-        print("TEST LOGIN")
-        code = await generate_temporary_code("test@apoez.org")
+        print("TEST LOGIN, this should not be used in production!")
+        code = await generate_temporary_code(request, "test@apoez.org")
         return RedirectResponse(
             url=f"{settings.FRONTEND_URL}/login/callback?code={code}&redirect={redirect_url}"
         )
@@ -45,7 +47,9 @@ async def google_login(request: Request) -> RedirectResponse:
 
 
 @router.get("/callback", response_description="Google callback")
-async def google_callback(star_request: StarletteRequest) -> RedirectResponse:
+async def google_callback(
+    star_request: StarletteRequest, request: Request
+) -> RedirectResponse:
     redirect_url = star_request.query_params.get("redirect", "/")
 
     async with google_sso:
@@ -57,15 +61,17 @@ async def google_callback(star_request: StarletteRequest) -> RedirectResponse:
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    code = await generate_temporary_code(user.email)
+    code = await generate_temporary_code(request, user.email)
     return RedirectResponse(
         url=f"{settings.FRONTEND_URL}/login/callback?code={code}&redirect={redirect_url}"
     )
 
 
 @router.post("/token", response_description="Exchange code for token")
-async def exchange_code_for_token(token: TokenRequest = Body(...)) -> JSONResponse:
-    user_email = await validate_code_and_get_user_email(token.code)
+async def exchange_code_for_token(
+    request: Request, token: TokenRequest = Body(...)
+) -> JSONResponse:
+    user_email = await validate_code_and_get_user_email(request, token.code)
     if not user_email:
         raise HTTPException(status_code=400, detail="Invalid code")
 
@@ -99,7 +105,7 @@ async def logout(request: Request, response: Response) -> JSONResponse:
     if token:
         # Assuming you have a blacklist set or database table
         # Here we use a simple set for demonstration purposes
-        await blacklist_token(token)
+        await add_token_to_blacklist(request, token)
         response.delete_cookie("authToken")
         return JSONResponse(content={"message": "Logged out", "success": True})
     return JSONResponse(
