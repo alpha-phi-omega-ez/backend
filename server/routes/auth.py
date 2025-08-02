@@ -5,7 +5,6 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi_sso.sso.google import GoogleSSO
 from starlette import status
-from starlette.requests import Request as StarletteRequest
 
 from server.config import settings
 from server.database.valkey import (
@@ -47,13 +46,11 @@ async def google_login(request: Request) -> RedirectResponse:
 
 
 @router.get("/callback", response_description="Google callback")
-async def google_callback(
-    star_request: StarletteRequest, request: Request
-) -> RedirectResponse:
-    redirect_url = star_request.query_params.get("redirect", "/")
+async def google_callback(request: Request) -> RedirectResponse:
+    redirect_url = request.query_params.get("redirect", "/")
 
     async with google_sso:
-        user = await google_sso.verify_and_process(star_request)
+        user = await google_sso.verify_and_process(request)
 
     if user is None or user.email is None:
         return RedirectResponse(
