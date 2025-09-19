@@ -49,8 +49,14 @@ async def google_login(request: Request) -> RedirectResponse:
 async def google_callback(request: Request) -> RedirectResponse:
     redirect_url = request.query_params.get("redirect", "/")
 
-    async with google_sso:
-        user = await google_sso.verify_and_process(request)
+    try:
+        async with google_sso:
+            user = await google_sso.verify_and_process(request)
+    except:
+        return RedirectResponse(
+            url=settings.FRONTEND_URL + "login/error",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
     if user is None or user.email is None:
         return RedirectResponse(
