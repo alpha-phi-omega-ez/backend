@@ -8,7 +8,7 @@ from server.models import ResponseModel
 
 
 def parse_date_flexible(date_str: str) -> str:
-    """Parse date string in either MM/DD/YYYY or YYYY-MM-DD format and return YYYY-MM-DD"""
+    # Parse date string in either MM/DD/YYYY or YYYY-MM-DD format and return YYYY-MM-DD
     if not date_str:
         return date_str
 
