@@ -1,5 +1,5 @@
 init:
-	pip3 install -r requirements.txt
+	uv sync
 
 develop:
 	uv run fastapi dev --port 9000
