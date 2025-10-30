@@ -45,14 +45,16 @@ async def generate_temporary_code(
                     await client.delete(code)
                     raise HTTPException(
                         status_code=500,
-                        detail="Failed to set expiration for temporary code. Key has been removed.",
+                        detail="Failed to set expiration for temporary code. Key has"
+                        " been removed.",
                     )
             except Exception as e:
                 # Expiry raised an exception, clean up the key
                 await client.delete(code)
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Failed to set expiration for temporary code: {e}. Key has been removed.",
+                    detail=f"Failed to set expiration for temporary code: {e}. Key has"
+                    " been removed.",
                 )
             return code
         else:
@@ -95,13 +97,17 @@ async def add_token_to_blacklist(
                 detail=f"Failed to add token to blacklist. Valkey response: {response}",
             )
         # Set blacklist TTL in seconds
-        expire_result = await client.expire(key, int(settings.ACCESS_TOKEN_EXPIRE_MINUTES) * 60)
+        expire_result = await client.expire(
+            key,
+            int(settings.ACCESS_TOKEN_EXPIRE_MINUTES) * 60,
+        )
         if not expire_result:
             # Attempt to delete the key to avoid indefinite blacklist
             await client.delete(key)
             raise HTTPException(
                 status_code=500,
-                detail="Failed to set expiry for blacklist key. Token was not blacklisted.",
+                detail="Failed to set expiry for blacklist key."
+                " Token was not blacklisted.",
             )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
