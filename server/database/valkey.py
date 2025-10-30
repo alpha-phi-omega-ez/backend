@@ -38,7 +38,22 @@ async def generate_temporary_code(
         response = await client.set(code, user_email)
         if response == "OK":
             # Apply expiry after setting the key
-            await client.expire(code, expire_seconds)
+            try:
+                expire_result = await client.expire(code, expire_seconds)
+                if not expire_result:
+                    # Expiry failed, clean up the key
+                    await client.delete(code)
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Failed to set expiration for temporary code. Key has been removed.",
+                    )
+            except Exception as e:
+                # Expiry raised an exception, clean up the key
+                await client.delete(code)
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to set expiration for temporary code: {e}. Key has been removed.",
+                )
             return code
         else:
             raise HTTPException(
