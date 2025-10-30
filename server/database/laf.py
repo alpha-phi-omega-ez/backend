@@ -135,8 +135,8 @@ async def add_laf(laf_data: dict) -> LAFItem:
     )
 
 
-async def update_laf(laf_id: str, laf_data: dict, now: datetime) -> bool:
-    laf_item = await laf_items_collection.find_one({"_id": int(laf_id)})
+async def update_laf(laf_id: int, laf_data: dict, now: datetime) -> bool:
+    laf_item = await laf_items_collection.find_one({"_id": laf_id})
     if laf_item is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -150,7 +150,7 @@ async def update_laf(laf_id: str, laf_data: dict, now: datetime) -> bool:
         laf_data["type_id"] = type_id
 
     updated_laf_item = await laf_items_collection.update_one(
-        {"_id": int(laf_id)}, {"$set": laf_data}
+        {"_id": laf_id}, {"$set": laf_data}
     )
     if updated_laf_item.modified_count == 1:
         return True
@@ -158,7 +158,7 @@ async def update_laf(laf_id: str, laf_data: dict, now: datetime) -> bool:
     return False
 
 
-async def found_laf_item(laf_id: str, laf_found: dict) -> bool:
+async def found_laf_item(laf_id: int, laf_found: dict) -> bool:
     now = datetime.now()
 
     laf_found["found"] = True
@@ -168,16 +168,16 @@ async def found_laf_item(laf_id: str, laf_found: dict) -> bool:
     return await update_laf(laf_id, laf_found, now)
 
 
-async def update_laf_item(laf_id: str, laf_data: dict) -> bool:
+async def update_laf_item(laf_id: int, laf_data: dict) -> bool:
     now = datetime.now()
 
     return await update_laf(laf_id, laf_data, now)
 
 
-async def archive_laf_items(ids: list[str]) -> None:
+async def archive_laf_items(ids: list[int]) -> None:
     now = datetime.now()
     await laf_items_collection.update_many(
-        {"_id": {"$in": [int(id) for id in ids]}},
+        {"_id": {"$in": ids}},
         {"$set": {"archived": True, "updated": now}},
     )
 

@@ -3,7 +3,6 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
 from glide import GlideClient, GlideClientConfiguration, NodeAddress
-from glide.async_commands.core import ExpirySet, ExpiryType
 
 from server.config import settings
 
@@ -36,10 +35,27 @@ async def generate_temporary_code(
     code = str(uuid4())
 
     try:
-        response = await client.set(
-            code, user_email, expiry=ExpirySet(ExpiryType.SEC, expire_seconds)
-        )
+        response = await client.set(code, user_email)
         if response == "OK":
+            # Apply expiry after setting the key
+            try:
+                expire_result = await client.expire(code, expire_seconds)
+                if not expire_result:
+                    # Expiry failed, clean up the key
+                    await client.delete(code)
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Failed to set expiration for temporary code. Key has"
+                        " been removed.",
+                    )
+            except Exception as e:
+                # Expiry raised an exception, clean up the key
+                await client.delete(code)
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to set expiration for temporary code: {e}. Key has"
+                    " been removed.",
+                )
             return code
         else:
             raise HTTPException(
@@ -73,15 +89,25 @@ async def add_token_to_blacklist(
         raise HTTPException(status_code=503, detail="Valkey service is unavailable.")
 
     try:
-        response = await client.set(
-            f"blacklist:{token}",
-            "1",
-            expiry=ExpirySet(ExpiryType.SEC, settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-        )
+        key = f"blacklist:{token}"
+        response = await client.set(key, "1")
         if response != "OK":
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to add token to blacklist. Valkey response: {response}",
+            )
+        # Set blacklist TTL in seconds
+        expire_result = await client.expire(
+            key,
+            int(settings.ACCESS_TOKEN_EXPIRE_MINUTES) * 60,
+        )
+        if not expire_result:
+            # Attempt to delete the key to avoid indefinite blacklist
+            await client.delete(key)
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to set expiry for blacklist key."
+                " Token was not blacklisted.",
             )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {e}")

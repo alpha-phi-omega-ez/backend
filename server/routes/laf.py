@@ -212,7 +212,7 @@ async def get_laf_items_expired(
     response_model=BoolResponse,
 )
 async def found_laf_item_route(
-    id: str,
+    id: int,
     laf_found: LAFFoundItem = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
@@ -226,7 +226,7 @@ async def found_laf_item_route(
     "/item/{id}", response_description="Update a LAF item", response_model=BoolResponse
 )
 async def update_laf_item_route(
-    id: str,
+    id: int,
     laf_item: LAFItemRequest = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
@@ -256,7 +256,7 @@ async def archive_laf_items_route(
     response_model=BoolResponse,
 )
 async def archive_single_laf_item(
-    id: str, auth: dict = Depends(required_auth)
+    id: int, auth: dict = Depends(required_auth)
 ) -> BoolResponse:
     await archive_laf_items([id])
     return BoolResponse(data=True, message="LAF item archived successfully")

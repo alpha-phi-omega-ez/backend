@@ -60,10 +60,10 @@ class LAFFoundItem(BaseModel):
 
 
 class LAFArchiveItems(BaseModel):
-    ids: list[Annotated[str, Field(pattern=r"^\d+$")]] = Field(...)
+    ids: list[int] = Field(...)
 
     class Config:
-        json_schema_extra = {"example": {"ids": ["1", "2", "3"]}}
+        json_schema_extra = {"example": {"ids": [1, 2, 3]}}
 
 
 class LostReportRequest(BaseModel):
