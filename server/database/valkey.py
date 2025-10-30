@@ -3,7 +3,6 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
 from glide import GlideClient, GlideClientConfiguration, NodeAddress
-from glide.async_commands.core import ExpirySet, ExpiryType
 
 from server.config import settings
 
@@ -36,10 +35,10 @@ async def generate_temporary_code(
     code = str(uuid4())
 
     try:
-        response = await client.set(
-            code, user_email, expiry=ExpirySet(ExpiryType.SEC, expire_seconds)
-        )
+        response = await client.set(code, user_email)
         if response == "OK":
+            # Apply expiry after setting the key
+            await client.expire(code, expire_seconds)
             return code
         else:
             raise HTTPException(
@@ -73,16 +72,15 @@ async def add_token_to_blacklist(
         raise HTTPException(status_code=503, detail="Valkey service is unavailable.")
 
     try:
-        response = await client.set(
-            f"blacklist:{token}",
-            "1",
-            expiry=ExpirySet(ExpiryType.SEC, settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-        )
+        key = f"blacklist:{token}"
+        response = await client.set(key, "1")
         if response != "OK":
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to add token to blacklist. Valkey response: {response}",
             )
+        # Set blacklist TTL in seconds
+        await client.expire(key, int(settings.ACCESS_TOKEN_EXPIRE_MINUTES) * 60)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
 
