@@ -95,7 +95,14 @@ async def add_token_to_blacklist(
                 detail=f"Failed to add token to blacklist. Valkey response: {response}",
             )
         # Set blacklist TTL in seconds
-        await client.expire(key, int(settings.ACCESS_TOKEN_EXPIRE_MINUTES) * 60)
+        expire_result = await client.expire(key, int(settings.ACCESS_TOKEN_EXPIRE_MINUTES) * 60)
+        if not expire_result:
+            # Attempt to delete the key to avoid indefinite blacklist
+            await client.delete(key)
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to set expiry for blacklist key. Token was not blacklisted.",
+            )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
 
