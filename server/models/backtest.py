@@ -1,6 +1,20 @@
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
-from server.models import ResponseModel
+from pydantic import BeforeValidator
+
+from server.models.common import ResponseModel, validate_object_id
+
+
+def validate_course_code(v: str) -> str:
+    """Validate that a string is a valid course code (exactly 4 uppercase letters)."""
+    v = v.strip() if isinstance(v, str) else str(v)
+    if not (len(v) == 4 and v.isalpha() and v.isupper()):
+        raise ValueError("must be exactly 4 uppercase letters (A-Z)")
+    return v
+
+
+ObjectId = Annotated[str, BeforeValidator(validate_object_id)]
+CourseCode = Annotated[str, BeforeValidator(validate_course_code)]
 
 
 class Course(TypedDict):

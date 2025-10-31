@@ -8,12 +8,14 @@ dependencies = [
     "aiocache>=0.12.3",
     "fastapi-sso>=0.17.0",
     "fastapi[standard]>=0.115.6",
+    "bleach>=6.1.0",
     "pydantic-settings>=2.7.1",
     "pyjwt>=2.10.1",
     "pymongo>=4.13.2",
     "ruff>=0.9.2",
     "sentry-sdk[fastapi]>=2.20.0",
     "valkey-glide>=2.0.1",
+    "pytest>=8.3.3",
 ]
 
 [tool.ruff]
@@ -27,4 +29,8 @@ select = ["I", "F", "E"]
 quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
 

@@ -2,9 +2,16 @@ from datetime import datetime
 from enum import Enum
 from typing import Annotated, TypedDict
 
-from pydantic import BaseModel, BeforeValidator, EmailStr, Field, PlainSerializer
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    EmailStr,
+    Field,
+    PlainSerializer,
+)
 
-from server.models import ResponseModel
+from server.helpers.sanitize import sanitize_text
+from server.models.common import Name, ResponseModel, validate_name_filter
 
 
 def parse_date_flexible(date_str: str) -> str:
@@ -28,10 +35,52 @@ def parse_date_flexible(date_str: str) -> str:
     raise ValueError(f"Date '{date_str}' must be in MM/DD/YYYY or YYYY-MM-DD format")
 
 
+# TODO: limit on frontend
+def validate_description(v: str) -> str:
+    """Validate and sanitize description (max 2000 characters)."""
+    return sanitize_text(v, max_len=2000)
+
+
+def validate_type(v: str) -> str:
+    """Validate and sanitize type (max 40 characters)."""
+    return sanitize_text(v, max_len=40)
+
+
+# TODO: will convert to list[str] later
+def validate_location(v: str) -> str:
+    """Validate and sanitize location (max 340 characters)."""
+    return sanitize_text(v, max_len=340)
+
+
+def validate_description_filter(v: str | None) -> str | None:
+    """Validate and sanitize description filter (max 2000 characters)."""
+    if v is None:
+        return None
+    return validate_description(v)
+
+
+def validate_type_filter(v: str | None) -> str | None:
+    """Validate and sanitize type filter (max 40 characters)."""
+    if v is None:
+        return None
+    return validate_type(v)
+
+
+# Optional versions for query parameters
+DescriptionFilter = Annotated[str, BeforeValidator(validate_description_filter)]
+TypeFilter = Annotated[str, BeforeValidator(validate_type_filter)]
+NameFilter = Annotated[str, BeforeValidator(validate_name_filter)]
+
+# Non-optional versions for required model fields
+Description = Annotated[str, BeforeValidator(validate_description)]
+TypeString = Annotated[str, BeforeValidator(validate_type)]
+Location = Annotated[str, BeforeValidator(validate_location)]
+
+
 class LAFItemRequest(BaseModel):
-    type: str = Field(...)
-    location: str = Field(...)
-    description: str = Field(...)
+    type: TypeString = Field(...)
+    location: Location = Field(...)
+    description: Description = Field(...)
     date: Annotated[
         str,
         Field(...),
@@ -50,7 +99,7 @@ class LAFItemRequest(BaseModel):
 
 
 class LAFFoundItem(BaseModel):
-    name: str = Field(...)
+    name: Name = Field(...)
     email: EmailStr = Field(...)
 
     class Config:
@@ -67,16 +116,16 @@ class LAFArchiveItems(BaseModel):
 
 
 class LostReportRequest(BaseModel):
-    type: str = Field(...)
-    name: str = Field(...)
+    type: TypeString = Field(...)
+    name: Name = Field(...)
     email: EmailStr = Field(...)
-    description: str = Field(...)
+    description: Description = Field(...)
     date: Annotated[
         str,
         Field(...),
         BeforeValidator(parse_date_flexible),
     ]
-    location: str = Field(...)
+    location: Location = Field(...)
 
     class Config:
         json_schema_extra = {
