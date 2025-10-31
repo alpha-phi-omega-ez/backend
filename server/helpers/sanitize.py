@@ -6,6 +6,7 @@ from typing import Any
 import bleach
 
 _OBJECT_ID_RE = re.compile(r"^[a-fA-F0-9]{24}$")
+_WHITESPACE_RE = re.compile(r"\s+")
 
 
 def strip_tags(text: str) -> str:
@@ -17,7 +18,7 @@ def strip_tags(text: str) -> str:
 
 def normalize_ws(text: str) -> str:
     # Collapse whitespace and trim
-    return re.sub(r"\s+", " ", text or "").strip()
+    return _WHITESPACE_RE.sub(" ", text or "").strip()
 
 
 def sanitize_text(text: str, max_len: int | None = None) -> str:
