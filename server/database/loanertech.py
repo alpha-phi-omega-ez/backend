@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 
 from server.database import database
 from server.helpers.db import get_next_sequence_value
+from server.helpers.sanitize import reject_mongo_operators
 from server.models.loanertech import LoanerTechItem, LoanerTechItemUnauthorized
 
 sequence_id_collection = database.get_collection("sequence_id")
@@ -47,6 +48,7 @@ async def retrieve_loanertechs() -> list[LoanerTechItem]:
 
 # Add a new loanertech item into to the database
 async def add_loanertech(loanertech_data: dict) -> LoanerTechItem:
+    reject_mongo_operators(loanertech_data)
     # Add the ID to the loanertech data
     loanertech_data["_id"] = await get_next_sequence_value(
         "loanertech_id", sequence_id_collection
@@ -81,6 +83,7 @@ async def update_loanertech(id: int, data: dict) -> bool:
     # Return false if an empty request body is sent.
     if len(data) < 1:
         return False
+    reject_mongo_operators(data)
     loanertech = await loanertech_collection.find_one({"_id": id})
     if loanertech:
         updated_loanertech = await loanertech_collection.update_one(

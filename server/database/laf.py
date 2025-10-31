@@ -13,6 +13,7 @@ from server.helpers.db import (
     datetime_time_delta,
     get_next_sequence_value,
 )
+from server.helpers.sanitize import reject_mongo_operators
 from server.models.laf import ArchivedLAFItem, ExpiredItem, LAFItem, LostReportItem
 
 sequence_id_collection = database.get_collection("sequence_id")
@@ -109,6 +110,7 @@ async def lost_report_helper(lost_report: dict) -> LostReportItem:
 
 # Add a new laf item into to the database
 async def add_laf(laf_data: dict) -> LAFItem:
+    reject_mongo_operators(laf_data)
     type_id = await get_type_id(laf_data["type"])
     del laf_data["type"]
 
@@ -149,6 +151,7 @@ async def update_laf(laf_id: int, laf_data: dict, now: datetime) -> bool:
         del laf_data["type"]
         laf_data["type_id"] = type_id
 
+    reject_mongo_operators(laf_data)
     updated_laf_item = await laf_items_collection.update_one(
         {"_id": laf_id}, {"$set": laf_data}
     )
@@ -397,6 +400,7 @@ async def retrieve_expired_laf(
 
 # Add a new lost report into to the database
 async def add_lost_report(lost_report_data: dict, auth: bool) -> LostReportItem:
+    reject_mongo_operators(lost_report_data)
     type_id = await get_type_id(lost_report_data["type"])
     del lost_report_data["type"]
     now = datetime.now()
@@ -437,6 +441,7 @@ async def update_lost_report(
         del lost_report_data["type"]
         lost_report_data["type_id"] = type_id
 
+    reject_mongo_operators(lost_report_data)
     updated_lost_report = await lost_reports_collection.update_one(
         {"_id": lost_report_id_bson}, {"$set": lost_report_data}
     )
