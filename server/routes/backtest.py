@@ -5,8 +5,13 @@ from server.database.backtest import (
     retrieve_coursecodes,
     retrieve_courses,
 )
-from server.models import StringListResponse
-from server.models.backtest import BacktestsReponse, CoursesResponse
+from server.models.backtest import (
+    BacktestsReponse,
+    CourseCode,
+    CoursesResponse,
+    ObjectId,
+)
+from server.models.common import StringListResponse
 
 router = APIRouter()
 
@@ -28,7 +33,7 @@ async def get_coursecodes() -> StringListResponse:
     response_description="Courses list retrieved",
     response_model=CoursesResponse,
 )
-async def get_courses(course_code: str) -> CoursesResponse:
+async def get_courses(course_code: CourseCode) -> CoursesResponse:
     courses = await retrieve_courses(course_code)
     return CoursesResponse(data=courses, message="Courses data retrieved successfully")
 
@@ -38,7 +43,7 @@ async def get_courses(course_code: str) -> CoursesResponse:
     response_description="Backtests retrieved",
     response_model=BacktestsReponse,
 )
-async def get_backtest(course_id: str) -> BacktestsReponse:
+async def get_backtest(course_id: ObjectId) -> BacktestsReponse:
     backtest = await retrieve_backtest(course_id)
     return BacktestsReponse(
         data=backtest, message="Backtests data retrieved successfully"
