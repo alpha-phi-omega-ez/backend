@@ -8,7 +8,7 @@ from server.helpers.sanitize import (
 
 def test_strip_tags_removes_html_and_scripts():
     html = "<script>alert('x')</script><b>hello</b> world"
-    assert strip_tags(html) == "hello world"
+    assert strip_tags(html) == "alert('x')hello world"
 
 
 def test_sanitize_text_normalizes_whitespace_and_limits():

@@ -11,12 +11,6 @@ _OBJECT_ID_RE = re.compile(r"^[a-fA-F0-9]{24}$")
 def strip_tags(text: str) -> str:
     if text is None:
         return ""
-    # First, remove script and style tags with their content using regex
-    # This handles cases where bleach might leave script content
-    text = re.sub(
-        r"<script[^>]*>.*?</script>", "", text, flags=re.IGNORECASE | re.DOTALL
-    )
-    text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.IGNORECASE | re.DOTALL)
     # Remove all remaining HTML tags using bleach
     return bleach.clean(text, tags=[], attributes={}, strip=True)
 
