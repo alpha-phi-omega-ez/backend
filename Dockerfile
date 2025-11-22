@@ -1,18 +1,22 @@
-# Use the latest uv image with python 3.13 and debian slim
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+# Python official 3.14.0 image on debian trixie (v13)
+FROM python:3.14.0-slim-trixie
 
-COPY . /app
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Copy uv binary
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV UV_COMPILE_BYTECODE=1
 
 WORKDIR /app
 
-# Install wget
-RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+COPY . /app
 
 # Install the dependencies
 RUN uv sync --frozen --no-cache
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://0.0.0.0:9000 || exit 1
+    CMD curl --fail --silent --show-error --output /dev/null http://0.0.0.0:9000 || exit 1
 
 EXPOSE 9000
 
