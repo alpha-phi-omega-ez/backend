@@ -1,5 +1,5 @@
-# Python official 3.14.0 image on debian trixie (v13)
-FROM python:3.14.0-slim-trixie
+# Python official 3.13.9 image on debian trixie (v13)
+FROM python:3.13.9-slim-trixie
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
