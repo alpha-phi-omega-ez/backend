@@ -32,7 +32,7 @@ For contributing to the code feel free to check out [issues](https://github.com/
 
 # How to report a bug
 
-> If you find a security vulnerability, do NOT open an issue. Please contact the organization owners.
+> If you find a security vulnerability, do NOT open an issue. Please contact the organization owners https://discord.gg/V9MJdBBXpF.
 
 To report a bug please use the bug report [issues](https://github.com/alpha-phi-omega-ez/backend/issues) template. The template has all the questions and information we need from you to help solve this bug.
 
