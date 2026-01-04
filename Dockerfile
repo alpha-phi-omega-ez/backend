@@ -1,22 +1,40 @@
-# Python official 3.13.9 image on debian trixie (v13)
-FROM python:3.13.9-slim-trixie
-
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Use the 3.14 official docker hardened python dev image with debian trixie (v13)
+FROM dhi.io/python:3.14-debian13-dev AS builder
 
 # Copy uv binary
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=dhi.io/uv:0 /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1
 
+# Set the working directory
 WORKDIR /app
 
-COPY . /app
+# Copy the required files
+COPY uv.lock pyproject.toml /app/
 
-# Install the dependencies
-RUN uv sync --frozen --no-cache
+# Install the required packages
+RUN uv sync --frozen --no-cache --no-install-project
+
+# Use the 3.14 official docker hardened python image with debian trixie (v13)
+FROM dhi.io/python:3.14-debian13
+
+WORKDIR /app
+
+# Add httpcheck binary (+~75KB)
+COPY --from=ghcr.io/tarampampam/microcheck:1 /bin/httpcheck /bin/httpcheck
+
+COPY main.py /app/
+COPY server/ /app/server/
+
+# Copy the virtual environment from the builder
+COPY --from=builder /app/.venv /app/.venv
+
+# Set environment to use the installed packages
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl --fail --silent --show-error --output /dev/null http://0.0.0.0:9000 || exit 1
+    CMD ["httpcheck", "http://127.0.0.1:9000/"]
 
 EXPOSE 9000
 
