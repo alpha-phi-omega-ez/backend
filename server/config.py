@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,7 +15,18 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 4
     SECRET_KEY: str = str(os.urandom(32))
     ALGORITHM: str = "HS256"
-    TESTING: bool = os.getenv("TESTING", "False").lower() in ("true", "1", "t")
+    TESTING: bool = False
+
+    @field_validator("TESTING", mode="before")
+    @classmethod
+    def parse_testing(cls, v):
+        if isinstance(v, str):
+            # Strip quotes if present
+            v = v.strip("\"'")
+            # Convert string to boolean
+            return v.lower() in ("true", "1", "t", "yes")
+        return bool(v)
+
     ROOT_PATH: str = os.getenv("ROOT_PATH", "")
     SENTRY_DSN: str = os.getenv("SENTRY_DSN", "")
     SENTRY_TRACE_RATE: float = float(os.getenv("SENTRY_TRACE_RATE", 1.0))
