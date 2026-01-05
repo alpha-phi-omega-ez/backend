@@ -1,4 +1,4 @@
-from typing import Optional, TypedDict
+from typing import Literal, Optional, TypedDict, Union
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -61,7 +61,7 @@ class LoanerTechItem(TypedDict):
     in_office: bool
     description: str
     phone: str
-    email: EmailStr
+    email: Union[EmailStr, Literal[""]]
     name: str
 
 
