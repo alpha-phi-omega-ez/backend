@@ -1,9 +1,17 @@
-from typing import Literal, Optional, TypedDict, Union
+from typing import Annotated, Literal, Optional, TypedDict, Union
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, BeforeValidator, EmailStr, Field
 
 from server.helpers.sanitize import sanitize_text
 from server.models.common import Name, ResponseModel
+
+
+def validate_loanertech_description(v: str) -> str:
+    """Validate and sanitize loanertech description (max 250 characters)."""
+    return sanitize_text(v, max_len=250)
+
+
+LoanerTechDescription = Annotated[str, BeforeValidator(validate_loanertech_description)]
 
 
 class LoanerTechCheckout(BaseModel):
@@ -35,7 +43,7 @@ class LoanerTechCheckin(BaseModel):
 
 
 class LoanerTechRequest(BaseModel):
-    description: str = Field(...)
+    description: LoanerTechDescription = Field(...)
 
     class Config:
         json_schema_extra = {
@@ -43,11 +51,6 @@ class LoanerTechRequest(BaseModel):
                 "description": "Apple 96 watt USB C charger",
             }
         }
-
-    @field_validator("description", mode="before")
-    @classmethod
-    def v_description(cls, v: str) -> str:
-        return sanitize_text(v, max_len=250)
 
 
 class LoanerTechItemUnauthorized(TypedDict):
