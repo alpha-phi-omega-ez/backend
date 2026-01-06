@@ -3,6 +3,7 @@ from bson import ObjectId
 from fastapi import HTTPException
 
 from server.database import database
+from server.helpers.sanitize import is_valid_object_id
 from server.models.backtest import Backtests, Course
 
 backtest_course_code_collection = database.get_collection(
@@ -36,6 +37,9 @@ async def retrieve_courses(course_code: str) -> list[Course]:
 
 @cached(ttl=86400)
 async def retrieve_backtest(backtest_id: str) -> list[Backtests]:
+    if not is_valid_object_id(backtest_id):
+        raise HTTPException(status_code=404, detail="Backtest not found")
+
     backtest = await backtest_collection.find_one(
         {"course_ids": {"$in": [ObjectId(backtest_id)]}}
     )
