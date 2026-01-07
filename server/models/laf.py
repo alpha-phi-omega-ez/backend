@@ -11,7 +11,7 @@ from pydantic import (
 )
 
 from server.helpers.sanitize import sanitize_text
-from server.models.common import Name, ResponseModel, validate_name_filter
+from server.models.common import Name, ResponseModel
 
 # Constants for field length limits
 LOCATION_MAX_LEN = 60
@@ -78,7 +78,6 @@ def validate_type_filter(v: str | None) -> str | None:
 # Optional versions for query parameters
 DescriptionFilter = Annotated[str, BeforeValidator(validate_description_filter)]
 TypeFilter = Annotated[str, BeforeValidator(validate_type_filter)]
-NameFilter = Annotated[str, BeforeValidator(validate_name_filter)]
 
 # Non-optional versions for required model fields
 Description = Annotated[str, BeforeValidator(validate_description)]
