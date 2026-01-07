@@ -34,6 +34,7 @@ from server.models.common import (
     StringListResponse,
 )
 from server.models.laf import (
+    LOCATION_MAX_LEN,
     DateFilter,
     DateString,
     DescriptionFilter,
@@ -185,7 +186,7 @@ async def get_laf_items(
     auth: dict = Depends(required_auth),
 ) -> LAFItemsResponse:
     sanitized_locations = (
-        [sanitize_text(x, max_len=60) for x in location]
+        [sanitize_text(x, max_len=LOCATION_MAX_LEN) for x in location]
         if location is not None
         else None
     )
@@ -299,7 +300,7 @@ async def new_lost_report(
 
     dict_lost_report = jsonable_encoder(lost_report)
     dict_lost_report["location"] = [
-        sanitize_text(location, max_len=60)
+        sanitize_text(location, max_len=LOCATION_MAX_LEN)
         for location in dict_lost_report["location"].split(",")
     ]
     new_lost_report = await add_lost_report(dict_lost_report, authenticated)
@@ -329,7 +330,7 @@ async def get_lost_reports(
     auth: bool = Depends(required_auth),
 ) -> LostReportItemsResponse:
     sanitized_locations = (
-        [sanitize_text(x, max_len=60) for x in location]
+        [sanitize_text(x, max_len=LOCATION_MAX_LEN) for x in location]
         if location is not None
         else None
     )

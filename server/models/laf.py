@@ -13,6 +13,9 @@ from pydantic import (
 from server.helpers.sanitize import sanitize_text
 from server.models.common import Name, ResponseModel, validate_name_filter
 
+# Constants for field length limits
+LOCATION_MAX_LEN = 60
+
 
 def parse_date_flexible(date_str: str) -> str:
     # Parse date string in either MM/DD/YYYY or YYYY-MM-DD format and return YYYY-MM-DD
@@ -48,8 +51,14 @@ def validate_type(v: str) -> str:
 
 # TODO: will convert to list[str] later
 def validate_location(v: str) -> str:
-    """Validate and sanitize location (max 340 characters)."""
-    return sanitize_text(v, max_len=340)
+    """Validate and sanitize location (max 60 characters per comma-separated item)."""
+    # Split by comma, sanitize each item individually, then join back
+    if not v:
+        return v
+    location_items = [
+        sanitize_text(item.strip(), max_len=LOCATION_MAX_LEN) for item in v.split(",")
+    ]
+    return ",".join(location_items)
 
 
 def validate_description_filter(v: str | None) -> str | None:
