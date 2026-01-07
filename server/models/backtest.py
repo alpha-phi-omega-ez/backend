@@ -7,7 +7,7 @@ from server.models.common import ResponseModel, validate_object_id
 
 def validate_course_code(v: str) -> str:
     """Validate that a string is a valid course code (exactly 4 uppercase letters)."""
-    v = v.strip() if isinstance(v, str) else str(v)
+    v = v.strip() if isinstance(v, str) else str(v).strip()
     if not (len(v) == 4 and v.isalpha() and v.isupper()):
         raise ValueError("must be exactly 4 uppercase letters (A-Z)")
     return v
