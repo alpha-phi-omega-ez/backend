@@ -19,9 +19,26 @@ def test_sanitize_text_normalizes_whitespace_and_limits():
 
 
 def test_is_valid_object_id():
+    # Valid cases
     assert is_valid_object_id("0" * 24)
-    assert not is_valid_object_id("g" * 24)
-    assert not is_valid_object_id("123")
+    assert is_valid_object_id("a" * 24)  # lowercase
+    assert is_valid_object_id("A" * 24)  # uppercase
+    assert is_valid_object_id("AaBbCc0123456789012345")  # mixed case
+    assert is_valid_object_id("0123456789abcdefABCDEF")  # mixed case with all hex chars
+
+    # Invalid cases
+    assert not is_valid_object_id("g" * 24)  # invalid hex character
+    assert not is_valid_object_id("123")  # too short
+    assert not is_valid_object_id("")  # empty string
+    assert not is_valid_object_id("0" * 23)  # too short (23 chars)
+    assert not is_valid_object_id("0" * 25)  # too long (25 chars)
+
+    # Non-string types
+    assert not is_valid_object_id(None)
+    assert not is_valid_object_id(123)
+    assert not is_valid_object_id(123456789012345678901234)  # integer
+    assert not is_valid_object_id([])
+    assert not is_valid_object_id({})
 
 
 def test_reject_mongo_operators_allows_safe():
