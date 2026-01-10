@@ -41,11 +41,13 @@ def _reject_key(key: Any) -> None:
 
 def reject_mongo_operators(obj: Any) -> Any:
     # Recursively validate that no keys start with '$' or contain '.'
+    # Only dict and iterable container types need validation (primitives pass through)
     if isinstance(obj, dict):
         for k, v in obj.items():
             _reject_key(k)
             reject_mongo_operators(v)
-    elif isinstance(obj, list):
+    elif isinstance(obj, (list, tuple, set)):
         for item in obj:
             reject_mongo_operators(item)
+    # Primitives (str, int, float, bool, None) and other types pass through unchanged
     return obj
