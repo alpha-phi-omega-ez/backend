@@ -16,7 +16,11 @@ LoanerTechDescription = Annotated[str, BeforeValidator(validate_loanertech_descr
 
 class LoanerTechCheckout(BaseModel):
     ids: list[int] = Field(...)
-    phone_number: str = Field(..., max_length=20, pattern=r"^[0-9+()\-\s]{7,20}$")
+    phone_number: str = Field(
+        ...,
+        max_length=20,
+        pattern=r"^\\(?([0-9]{3})\\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$",
+    )
     email: Optional[EmailStr] = Field(...)
     name: Name = Field(...)
 
