@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
@@ -13,7 +13,7 @@ from server.database.loanertech import (
     update_loanertech,
 )
 from server.helpers.auth import required_auth, simple_auth_check
-from server.models import BoolResponse
+from server.models.common import BoolResponse
 from server.models.loanertech import (
     LoanerTechCheckin,
     LoanerTechCheckout,
@@ -60,7 +60,7 @@ async def add_loanertech_data(
 
 
 @router.get("/{id}", response_description="LoanerTech data retrieved")
-async def get_loanertech_data(id: int) -> LoanerTechResponse:
+async def get_loanertech_data(id: int = Path(..., ge=1)) -> LoanerTechResponse:
     loanertech = await retrieve_loanertech(id)
     if loanertech:
         return LoanerTechResponse(
@@ -77,7 +77,7 @@ async def get_loanertech_data(id: int) -> LoanerTechResponse:
     response_model=BoolResponse,
 )
 async def update_loanertech_data(
-    id: int,
+    id: int = Path(..., ge=1),
     req: LoanerTechRequest = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
@@ -95,7 +95,7 @@ async def update_loanertech_data(
     response_model=BoolResponse,
 )
 async def delete_loanertech_data(
-    id: int,
+    id: int = Path(..., ge=1),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
     if await delete_loanertech(id):
