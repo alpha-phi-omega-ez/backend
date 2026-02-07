@@ -16,8 +16,8 @@ def strip_tags(text: str | None) -> str:
     return bleach.clean(text, tags=[], attributes={}, strip=True)
 
 
-def normalize_ws(text: str) -> str:
-    # Collapse whitespace and trim
+def normalize_ws(text: str | None) -> str:
+    # Collapse whitespace and trim; None treated as empty string
     return _WHITESPACE_RE.sub(" ", text or "").strip()
 
 
