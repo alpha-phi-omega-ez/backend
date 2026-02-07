@@ -9,7 +9,7 @@ _OBJECT_ID_RE = re.compile(r"^[a-fA-F0-9]{24}$")
 _WHITESPACE_RE = re.compile(r"\s+")
 
 
-def strip_tags(text: str) -> str:
+def strip_tags(text: str | None) -> str:
     if text is None:
         return ""
     # Remove all remaining HTML tags using bleach
