@@ -8,8 +8,8 @@ from server.database.backtest import (
 from server.models.backtest import (
     BacktestsReponse,
     CourseCode,
+    CourseId,
     CoursesResponse,
-    ObjectId,
 )
 from server.models.common import StringListResponse
 
@@ -43,7 +43,7 @@ async def get_courses(course_code: CourseCode) -> CoursesResponse:
     response_description="Backtests retrieved",
     response_model=BacktestsReponse,
 )
-async def get_backtest(course_id: ObjectId) -> BacktestsReponse:
+async def get_backtest(course_id: CourseId) -> BacktestsReponse:
     backtest = await retrieve_backtest(course_id)
     return BacktestsReponse(
         data=backtest, message="Backtests data retrieved successfully"

@@ -13,12 +13,13 @@ def validate_course_code(v: str) -> str:
     return v
 
 
-ObjectId = Annotated[str, BeforeValidator(validate_object_id)]
+# Backtest route path param: course id stored as MongoDB ObjectId
+CourseId = Annotated[str, BeforeValidator(validate_object_id)]
 CourseCode = Annotated[str, BeforeValidator(validate_course_code)]
 
 
 class Course(TypedDict):
-    id: str
+    id: CourseId
     name: str
 
 
