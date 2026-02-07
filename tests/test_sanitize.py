@@ -13,6 +13,10 @@ def test_strip_tags_removes_html_and_scripts():
     assert strip_tags(html) == "alert('x')hello world"
 
 
+def test_strip_tags_returns_empty_string_for_none():
+    assert strip_tags(None) == ""
+
+
 @pytest.mark.parametrize(
     "text,kwargs,expected",
     [
