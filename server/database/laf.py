@@ -142,10 +142,7 @@ async def update_laf(laf_id: int, laf_data: dict, now: datetime) -> bool:
 
     laf_item = await laf_items_collection.find_one({"_id": laf_id})
     if laf_item is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Laf item with id {laf_id} not found",
-        )
+        return False
 
     laf_data["updated"] = now
     if laf_data.get("type", False):
