@@ -26,6 +26,7 @@ def validate_name_filter(v: str | None) -> str | None:
 
 NameFilter = Annotated[str, BeforeValidator(validate_name_filter)]
 Name = Annotated[str, BeforeValidator(validate_name)]
+ObjectId = Annotated[str, BeforeValidator(validate_object_id)]
 
 
 class ResponseModel(BaseModel):
