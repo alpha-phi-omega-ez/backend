@@ -114,7 +114,11 @@ async def add_laf(laf_data: dict) -> LAFItem:
 
     now = datetime.now()
 
-    laf_data["_id"] = await get_next_sequence_value("laf_id", sequence_id_collection)
+    laf_data["_id"] = await get_next_sequence_value(
+        "laf_id",
+        sequence_id_collection,
+        laf_items_collection,
+    )
     laf_data["description"] = laf_data["description"].strip()
     laf_data["found"] = False
     laf_data["archived"] = False

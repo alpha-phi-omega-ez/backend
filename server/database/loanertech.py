@@ -49,7 +49,9 @@ async def retrieve_loanertechs() -> list[LoanerTechItem]:
 async def add_loanertech(loanertech_data: dict) -> LoanerTechItem:
     # Add the ID to the loanertech data
     loanertech_data["_id"] = await get_next_sequence_value(
-        "loanertech_id", sequence_id_collection
+        "loanertech_id",
+        sequence_id_collection,
+        loanertech_collection,
     )
     loanertech_data["in_office"] = True
     loanertech_data["phone"] = ""
