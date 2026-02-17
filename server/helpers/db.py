@@ -33,8 +33,8 @@ async def get_next_sequence_value(
         if existing is None:
             return value  # Unique ID found
 
-        # Duplicate: sequence is behind. Correct it to max(_id) + 1 so we
-        # don't hand out this value again and future calls are safe.
+        # Duplicate: sequence is behind. Set seq to max(_id) so the next
+        # increment returns max_id + 1 and we don't hand out this value again.
         max_doc = await check_collection.find_one(
             sort=[("_id", -1)], projection={"_id": 1}
         )
@@ -43,4 +43,3 @@ async def get_next_sequence_value(
             {"_id": sequence_name},
             {"$max": {"seq": max_id}},
         )
-        # Loop to get the next value (sequence is now corrected)
