@@ -18,6 +18,9 @@ async def valkey_setup(app: FastAPI) -> None:
         )
         client = await GlideClient.create(config)
 
+        pong = await client.ping()
+        print(f"Valkey Connection Successful: {pong}")
+
         # Store the client instance in the application's state
         app.state.valkey_client = client
         print("Successfully connected to Valkey and client is ready.")
