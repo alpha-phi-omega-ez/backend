@@ -12,10 +12,12 @@ async def valkey_setup(app: FastAPI) -> None:
     try:
         # Configure and create the Valkey client instance
         addresses = [NodeAddress(settings.VALKEY_ADDRESS, 6379)]
-        config = GlideClientConfiguration(
-            addresses=addresses,
-            credentials=ServerCredentials(password=settings.VALKEY_PASSWORD),
-        )
+        config_kwargs = {"addresses": addresses}
+        if settings.VALKEY_PASSWORD:
+            config_kwargs["credentials"] = ServerCredentials(
+                password=settings.VALKEY_PASSWORD
+            )
+        config = GlideClientConfiguration(**config_kwargs)
         client = await GlideClient.create(config)
 
         pong = await client.ping()
