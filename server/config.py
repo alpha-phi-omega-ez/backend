@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     SENTRY_TRACE_RATE: float = float(os.getenv("SENTRY_TRACE_RATE", 1.0))
     SENTRY_PROFILE_RATE: float = float(os.getenv("SENTRY_PROFILE_RATE", 1.0))
     VALKEY_ADDRESS: str = os.getenv("VALKEY_ADDRESS", "127.0.0.1")
+    VALKEY_PASSWORD: str = os.getenv("VALKEY_PASSWORD", "")
 
     # Define routes to exclude from tracing and profiling
     EXCLUDED_ROUTES: set = {"/", "/openapi.json", "/docs"}
