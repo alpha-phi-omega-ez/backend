@@ -2,7 +2,7 @@ import sys
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
-from glide import GlideClient, GlideClientConfiguration, NodeAddress
+from glide import GlideClient, GlideClientConfiguration, NodeAddress, ServerCredentials
 
 from server.config import settings
 
@@ -13,8 +13,8 @@ async def valkey_setup(app: FastAPI) -> None:
         # Configure and create the Valkey client instance
         addresses = [NodeAddress(settings.VALKEY_ADDRESS, 6379)]
         config = GlideClientConfiguration(
-                addresses=addresses,
-                credentials=ServerCredentials(password=settings.VALKEY_PASSWORD),
+            addresses=addresses,
+            credentials=ServerCredentials(password=settings.VALKEY_PASSWORD),
         )
         client = await GlideClient.create(config)
 
