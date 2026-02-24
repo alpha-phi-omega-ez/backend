@@ -12,7 +12,10 @@ async def valkey_setup(app: FastAPI) -> None:
     try:
         # Configure and create the Valkey client instance
         addresses = [NodeAddress(settings.VALKEY_ADDRESS, 6379)]
-        config = GlideClientConfiguration(addresses=addresses)
+        config = GlideClientConfiguration(
+                addresses=addresses,
+                credentials=ServerCredentials(password=settings.VALKEY_PASSWORD),
+        )
         client = await GlideClient.create(config)
 
         # Store the client instance in the application's state
