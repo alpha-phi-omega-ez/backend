@@ -2,9 +2,21 @@ from datetime import datetime
 from enum import Enum
 from typing import Annotated, TypedDict
 
-from pydantic import BaseModel, BeforeValidator, EmailStr, Field, PlainSerializer
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    EmailStr,
+    Field,
+    PlainSerializer,
+)
 
-from server.models import ResponseModel
+from server.helpers.sanitize import sanitize_text
+from server.models.common import Name, ResponseModel
+
+# Constants for field length limits
+LOCATION_MAX_LEN = 60
+DESCRIPTION_MAX_LEN = 2000
+TYPE_MAX_LEN = 40
 
 
 def parse_date_flexible(date_str: str) -> str:
@@ -28,10 +40,61 @@ def parse_date_flexible(date_str: str) -> str:
     raise ValueError(f"Date '{date_str}' must be in MM/DD/YYYY or YYYY-MM-DD format")
 
 
+# TODO: limit on frontend
+def validate_description(v: str) -> str:
+    """Validate and sanitize description."""
+    return sanitize_text(v, max_len=DESCRIPTION_MAX_LEN)
+
+
+def validate_type(v: str) -> str:
+    """Validate and sanitize type."""
+    return sanitize_text(v, max_len=TYPE_MAX_LEN)
+
+
+def validate_location_single(v: str) -> str:
+    """Validate and sanitize a single location string."""
+    return sanitize_text(v, max_len=LOCATION_MAX_LEN)
+
+
+# TODO: will convert to list[str] later
+def validate_location(v: str) -> str:
+    """Validate and sanitize location."""
+    # Split by comma, sanitize each item individually, then join back
+    if not v:
+        return v
+    location_items = [validate_location_single(location) for location in v.split(",")]
+    return ",".join(location_items)
+
+
+def validate_description_filter(v: str | None) -> str | None:
+    """Validate and sanitize description filter."""
+    if v is None:
+        return None
+    return validate_description(v)
+
+
+def validate_type_filter(v: str | None) -> str | None:
+    """Validate and sanitize type filter."""
+    if v is None:
+        return None
+    return validate_type(v)
+
+
+# Optional versions for query parameters
+DescriptionFilter = Annotated[str, BeforeValidator(validate_description_filter)]
+TypeFilter = Annotated[str, BeforeValidator(validate_type_filter)]
+
+# Non-optional versions for required model fields
+Description = Annotated[str, BeforeValidator(validate_description)]
+TypeString = Annotated[str, BeforeValidator(validate_type)]
+Location = Annotated[str, BeforeValidator(validate_location)]
+LocationSingle = Annotated[str, BeforeValidator(validate_location_single)]
+
+
 class LAFItemRequest(BaseModel):
-    type: str = Field(...)
-    location: str = Field(...)
-    description: str = Field(...)
+    type: TypeString = Field(...)
+    location: Location = Field(...)
+    description: Description = Field(...)
     date: Annotated[
         str,
         Field(...),
@@ -50,7 +113,7 @@ class LAFItemRequest(BaseModel):
 
 
 class LAFFoundItem(BaseModel):
-    name: str = Field(...)
+    name: Name = Field(...)
     email: EmailStr = Field(...)
 
     class Config:
@@ -67,16 +130,16 @@ class LAFArchiveItems(BaseModel):
 
 
 class LostReportRequest(BaseModel):
-    type: str = Field(...)
-    name: str = Field(...)
+    type: TypeString = Field(...)
+    name: Name = Field(...)
     email: EmailStr = Field(...)
-    description: str = Field(...)
+    description: Description = Field(...)
     date: Annotated[
         str,
         Field(...),
         BeforeValidator(parse_date_flexible),
     ]
-    location: str = Field(...)
+    location: Location = Field(...)
 
     class Config:
         json_schema_extra = {
@@ -92,14 +155,14 @@ class LostReportRequest(BaseModel):
 
 
 class LAFLocation(BaseModel):
-    location: str = Field(...)
+    location: LocationSingle = Field(...)
 
     class Config:
         json_schema_extra = {"example": {"location": "ECAV"}}
 
 
 class LAFType(BaseModel):
-    type: str = Field(...)
+    type: TypeString = Field(...)
 
     class Config:
         json_schema_extra = {"example": {"type": "Washing Machines"}}
@@ -113,7 +176,7 @@ class DateFilter(str, Enum):
 DateString = Annotated[
     str,
     BeforeValidator(lambda x: None if x is None else str(x)),
-    BeforeValidator(lambda x: (x if x is None else parse_date_flexible(x))),
+    BeforeValidator(lambda x: x if x is None else parse_date_flexible(x)),
     PlainSerializer(lambda x: x, return_type=str),
 ]
 

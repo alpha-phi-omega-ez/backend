@@ -56,13 +56,13 @@ async def google_callback(request: Request) -> RedirectResponse:
             user = await google_sso.verify_and_process(request)
     except (ConnectTimeout, InvalidGrantError, ConnectError):
         return RedirectResponse(
-            url=settings.FRONTEND_URL + "login/error",
+            url=f"{settings.FRONTEND_URL}/login/error",
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
     if user is None or user.email is None:
         return RedirectResponse(
-            url=settings.FRONTEND_URL + "login/error",
+            url=f"{settings.FRONTEND_URL}/login/error",
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -89,7 +89,7 @@ async def exchange_code_for_token(
         expires_delta=access_token_expires,
     )
 
-    secure = not settings.TESTING  # READD FOR PRODUCTION
+    secure = not settings.TESTING  # Use HTTPS in production
     max_age = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     response = JSONResponse(content={"message": "Login successful"})
     response.set_cookie(
