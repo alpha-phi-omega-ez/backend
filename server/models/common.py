@@ -5,8 +5,12 @@ from pydantic import BaseModel, BeforeValidator
 from server.helpers.sanitize import is_valid_object_id, sanitize_text
 
 
-def validate_name(v: str | None) -> str:
-    """Validate and sanitize name filter (max 100 characters)."""
+def validate_name(v: str) -> str:
+    """Validate and sanitize a required name (max 100 characters)."""
+    if v is None:
+        raise ValueError("name is required")
+    if not isinstance(v, str):
+        raise ValueError("name must be a string")
     return sanitize_text(v, max_len=100)
 
 
