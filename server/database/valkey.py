@@ -1,3 +1,4 @@
+import logging
 import sys
 from uuid import uuid4
 
@@ -6,9 +7,11 @@ from glide import GlideClient, GlideClientConfiguration, NodeAddress, ServerCred
 
 from server.config import settings
 
+logger = logging.getLogger(__name__)
+
 
 async def valkey_setup(app: FastAPI) -> None:
-    print("Connecting to Valkey...")
+    logger.info("Connecting to Valkey...")
     try:
         # Configure and create the Valkey client instance
         addresses = [NodeAddress(settings.VALKEY_ADDRESS, 6379)]
@@ -21,14 +24,21 @@ async def valkey_setup(app: FastAPI) -> None:
         client = await GlideClient.create(config)
 
         pong = await client.ping()
-        print(f"Valkey Connection Successful: {pong}")
+        logger.info("Valkey Connection Successful: %s", pong)
 
         # Store the client instance in the application's state
         app.state.valkey_client = client
-        print("Successfully connected to Valkey and client is ready.")
+        logger.info("Successfully connected to Valkey and client is ready.")
     except Exception as e:
-        print(f"Failed to connect to Valkey: {e}")
+        logger.exception("Failed to connect to Valkey: %s", e)
         sys.exit(1)
+
+
+async def valkey_shutdown(app: FastAPI) -> None:
+    if hasattr(app.state, "valkey_client") and app.state.valkey_client:
+        logger.info("Closing Valkey connection...")
+        await app.state.valkey_client.close()
+        logger.info("Valkey connection closed.")
 
 
 async def generate_temporary_code(
