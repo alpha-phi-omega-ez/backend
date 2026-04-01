@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
@@ -29,14 +29,15 @@ router = APIRouter()
     response_description="LoanerTech list retrieved",
 )
 async def get_loanertechs(
+    request: Request,
     auth: Tuple[bool, str, dict | None] = Depends(simple_auth_check),
 ) -> JSONResponse:
     authenticated = auth[0]
 
     loanertechs = (
-        await retrieve_loanertechs()
+        await retrieve_loanertechs(request)
         if authenticated
-        else await retrieve_loanertechs_unauthenticated()
+        else await retrieve_loanertechs_unauthenticated(request)
     )
     return JSONResponse(
         {"data": loanertechs, "message": "LoanerTech data retrieved successfully"}
@@ -49,19 +50,22 @@ async def get_loanertechs(
     response_model=LoanerTechResponse,
 )
 async def add_loanertech_data(
+    request: Request,
     loanertech: LoanerTechRequest = Body(...),
     auth: dict = Depends(required_auth),
 ) -> LoanerTechResponse:
     dict_loanertech = jsonable_encoder(loanertech)
-    new_loanertech = await add_loanertech(dict_loanertech)
+    new_loanertech = await add_loanertech(request, dict_loanertech)
     return LoanerTechResponse(
         data=new_loanertech, message="LoanerTech added successfully."
     )
 
 
 @router.get("/{id}", response_description="LoanerTech data retrieved")
-async def get_loanertech_data(id: int = Path(..., ge=1)) -> LoanerTechResponse:
-    loanertech = await retrieve_loanertech(id)
+async def get_loanertech_data(
+    request: Request, id: int = Path(..., ge=1)
+) -> LoanerTechResponse:
+    loanertech = await retrieve_loanertech(request, id)
     if loanertech:
         return LoanerTechResponse(
             data=loanertech, message="LoanerTech data retrieved successfully"
@@ -77,12 +81,13 @@ async def get_loanertech_data(id: int = Path(..., ge=1)) -> LoanerTechResponse:
     response_model=BoolResponse,
 )
 async def update_loanertech_data(
+    request: Request,
     id: int = Path(..., ge=1),
     req: LoanerTechRequest = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
     dict_req = jsonable_encoder(req)
-    if await update_loanertech(id, dict_req):
+    if await update_loanertech(request, id, dict_req):
         return BoolResponse(data=True, message="LoanerTech name updated successfully")
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND, detail="Failed to update loanertech"
@@ -95,10 +100,11 @@ async def update_loanertech_data(
     response_model=BoolResponse,
 )
 async def delete_loanertech_data(
+    request: Request,
     id: int = Path(..., ge=1),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-    if await delete_loanertech(id):
+    if await delete_loanertech(request, id):
         return BoolResponse(data=True, message="LoanerTech deleted successfully")
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -112,6 +118,7 @@ async def delete_loanertech_data(
     response_model=BoolResponse,
 )
 async def checkout_loanertech(
+    request: Request,
     req: LoanerTechCheckout = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
@@ -123,7 +130,7 @@ async def checkout_loanertech(
         "name": dict_req["name"],
     }
     for id in dict_req["ids"]:
-        if not await update_loanertech(id, item):
+        if not await update_loanertech(request, id, item):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to add checkout loanertech",
@@ -144,12 +151,13 @@ checkin_item = {
     "/checkin", response_description="Checked in LAF items", response_model=BoolResponse
 )
 async def checkin_loanertech(
+    request: Request,
     req: LoanerTechCheckin = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
     dict_req = jsonable_encoder(req)
     for id in dict_req["ids"]:
-        if not await update_loanertech(id, checkin_item):
+        if not await update_loanertech(request, id, checkin_item):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to add checking loanertech",

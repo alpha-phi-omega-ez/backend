@@ -1,6 +1,6 @@
 from typing import Optional, Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from fastapi.encoders import jsonable_encoder
 from pydantic import EmailStr
 
@@ -64,8 +64,8 @@ router = APIRouter()
     response_description="LAF types list retrieved",
     response_model=StringListResponse,
 )
-async def get_laf_types() -> StringListResponse:
-    laf_types = await retrieve_laf_types()
+async def get_laf_types(request: Request) -> StringListResponse:
+    laf_types = await retrieve_laf_types(request)
     return StringListResponse(
         data=laf_types, message="Laf types data retrieved successfully"
     )
@@ -77,11 +77,12 @@ async def get_laf_types() -> StringListResponse:
     response_model=BoolResponse,
 )
 async def new_laf_type(
+    request: Request,
     laf_type: LAFType = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
     dict_laf_type = jsonable_encoder(laf_type)
-    if await add_laf_type(dict_laf_type["type"]):
+    if await add_laf_type(request, dict_laf_type["type"]):
         return BoolResponse(data=True, message="LAF type added successfully")
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -93,11 +94,12 @@ async def new_laf_type(
     "/type/", response_description="Delete a LAF type", response_model=BoolResponse
 )
 async def delete_laf_type_route(
+    request: Request,
     laf_type: LAFType = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
     dict_laf_type = jsonable_encoder(laf_type)
-    if await delete_laf_type(dict_laf_type["type"]):
+    if await delete_laf_type(request, dict_laf_type["type"]):
         return BoolResponse(data=True, message="LAF type deleted successfully")
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -113,8 +115,8 @@ async def delete_laf_type_route(
     response_description="LAF locations list retrieved",
     response_model=StringListResponse,
 )
-async def get_laf_locations() -> StringListResponse:
-    laf_locations = await retrieve_laf_locations()
+async def get_laf_locations(request: Request) -> StringListResponse:
+    laf_locations = await retrieve_laf_locations(request)
     return StringListResponse(
         data=laf_locations, message="Laf locations data retrieved successfully"
     )
@@ -126,11 +128,12 @@ async def get_laf_locations() -> StringListResponse:
     response_model=BoolResponse,
 )
 async def new_laf_location(
+    request: Request,
     laf_location: LAFLocation = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
     dict_laf_location = jsonable_encoder(laf_location)
-    if await add_laf_location(dict_laf_location["location"]):
+    if await add_laf_location(request, dict_laf_location["location"]):
         return BoolResponse(data=True, message="LAF location added successfully")
     raise HTTPException(status_code=500, detail="Failed to add LAF location")
 
@@ -141,11 +144,12 @@ async def new_laf_location(
     response_model=BoolResponse,
 )
 async def delete_laf_location_route(
+    request: Request,
     laf_location: LAFLocation = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
     dict_laf_location = jsonable_encoder(laf_location)
-    if await delete_laf_location(dict_laf_location["location"]):
+    if await delete_laf_location(request, dict_laf_location["location"]):
         return BoolResponse(data=True, message="LAF location deleted successfully")
     raise HTTPException(status_code=500, detail="Failed to delete LAF location")
 
@@ -159,11 +163,12 @@ async def delete_laf_location_route(
     response_model=LAFItemResponse,
 )
 async def new_laf_item(
+    request: Request,
     laf_item: LAFItemRequest = Body(...),
     auth: dict = Depends(required_auth),
 ) -> LAFItemResponse:
     dict_laf = jsonable_encoder(laf_item)
-    new_laf_item = await add_laf(dict_laf)
+    new_laf_item = await add_laf(request, dict_laf)
     return LAFItemResponse(data=new_laf_item, message="LAF added successfully")
 
 
@@ -173,6 +178,7 @@ async def new_laf_item(
     response_model=LAFItemsResponse,
 )
 async def get_laf_items(
+    request: Request,
     date: Optional[DateString] = Query(None, description="Date of the item"),
     dateFilter: Optional[DateFilter] = Query(None, description="Filter for date"),
     location: Optional[list[str]] = Query(
@@ -200,7 +206,7 @@ async def get_laf_items(
         "id": id,
     }
 
-    laf_items = await retrieve_laf_items(dict_laf_filters, archived)
+    laf_items = await retrieve_laf_items(request, dict_laf_filters, archived)
     return LAFItemsResponse(data=laf_items, message="Retrieved LAF items")
 
 
@@ -210,6 +216,7 @@ async def get_laf_items(
     response_model=ExpireLAFItemsReponse,
 )
 async def get_laf_items_expired(
+    request: Request,
     water_bottle: int = Query(30, description="Water Bottle days to expiration"),
     clothing: int = Query(90, description="Clothing days to expiration"),
     umbrella: int = Query(90, description="Umbrella days to expiration"),
@@ -219,6 +226,7 @@ async def get_laf_items_expired(
     auth: dict = Depends(required_auth),
 ) -> ExpireLAFItemsReponse:
     laf_items = await retrieve_expired_laf(
+        request,
         water_bottle,
         clothing,
         umbrella,
@@ -235,12 +243,13 @@ async def get_laf_items_expired(
     response_model=BoolResponse,
 )
 async def found_laf_item_route(
+    request: Request,
     id: int,
     laf_found: LAFFoundItem = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
     laf_found_dict = jsonable_encoder(laf_found)
-    if await found_laf_item(id, laf_found_dict):
+    if await found_laf_item(request, id, laf_found_dict):
         return BoolResponse(data=True, message="LAF item updated successfully")
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -252,12 +261,13 @@ async def found_laf_item_route(
     "/item/{id}", response_description="Update a LAF item", response_model=BoolResponse
 )
 async def update_laf_item_route(
+    request: Request,
     id: int,
     laf_item: LAFItemRequest = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
     dict_laf = jsonable_encoder(laf_item)
-    if await update_laf_item(id, dict_laf):
+    if await update_laf_item(request, id, dict_laf):
         return BoolResponse(data=True, message="LAF item updated successfully")
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -271,11 +281,12 @@ async def update_laf_item_route(
     response_model=BoolResponse,
 )
 async def archive_laf_items_route(
+    request: Request,
     laf_items: LAFArchiveItems = Body(...),
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
     dict_laf = jsonable_encoder(laf_items)
-    await archive_laf_items(dict_laf["ids"])
+    await archive_laf_items(request, dict_laf["ids"])
     return BoolResponse(data=True, message="LAF items archived successfully")
 
 
@@ -285,9 +296,9 @@ async def archive_laf_items_route(
     response_model=BoolResponse,
 )
 async def archive_single_laf_item(
-    id: int, auth: dict = Depends(required_auth)
+    request: Request, id: int, auth: dict = Depends(required_auth)
 ) -> BoolResponse:
-    await archive_laf_items([id])
+    await archive_laf_items(request, [id])
     return BoolResponse(data=True, message="LAF item archived successfully")
 
 
@@ -300,6 +311,7 @@ async def archive_single_laf_item(
     response_model=LostReportItemResponse,
 )
 async def new_lost_report(
+    request: Request,
     lost_report: LostReportRequest = Body(...),
     auth: Tuple[bool, str, dict | None] = Depends(simple_auth_check),
 ) -> LostReportItemResponse:
@@ -310,7 +322,7 @@ async def new_lost_report(
         sanitize_text(location, max_len=LOCATION_MAX_LEN)
         for location in dict_lost_report["location"].split(",")
     ]
-    new_lost_report = await add_lost_report(dict_lost_report, authenticated)
+    new_lost_report = await add_lost_report(request, dict_lost_report, authenticated)
     return LostReportItemResponse(
         data=new_lost_report, message="Lost report added successfully"
     )
@@ -322,6 +334,7 @@ async def new_lost_report(
     response_model=LostReportItemsResponse,
 )
 async def get_lost_reports(
+    request: Request,
     date: Optional[DateString] = Query(None, description="Date of the item"),
     dateFilter: Optional[DateFilter] = Query(None, description="Filter for date"),
     location: Optional[list[str]] = Query(
@@ -350,7 +363,9 @@ async def get_lost_reports(
         "name": name,
         "email": email,
     }
-    lost_reports = await retrieve_lost_reports(dict_lost_report_filters, archived)
+    lost_reports = await retrieve_lost_reports(
+        request, dict_lost_report_filters, archived
+    )
     return LostReportItemsResponse(data=lost_reports, message="Retrieved Lost Reports")
 
 
@@ -360,10 +375,11 @@ async def get_lost_reports(
     response_model=BoolResponse,
 )
 async def found_lost_report_route(
+    request: Request,
     id: ObjectId,
     auth: dict = Depends(required_auth),
 ) -> BoolResponse:
-    if await found_lost_report(id):
+    if await found_lost_report(request, str(id)):
         return BoolResponse(data=True, message="Lost Report updated successfully")
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -377,6 +393,7 @@ async def found_lost_report_route(
     response_model=BoolResponse,
 )
 async def update_lost_report_route(
+    request: Request,
     id: ObjectId,
     lost_report: LostReportRequest = Body(...),
     auth: dict = Depends(required_auth),
@@ -386,7 +403,7 @@ async def update_lost_report_route(
         sanitize_text(loc, max_len=LOCATION_MAX_LEN)
         for loc in dict_lost_report["location"].split(",")
     ]
-    if await update_lost_report_item(id, dict_lost_report):
+    if await update_lost_report_item(request, str(id), dict_lost_report):
         return BoolResponse(data=True, message="Lost Report updated successfully")
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -399,9 +416,11 @@ async def update_lost_report_route(
     response_description="Get the number of new reports",
     response_model=IntResponse,
 )
-async def get_new_report_count(auth: dict = Depends(required_auth)) -> IntResponse:
+async def get_new_report_count(
+    request: Request, auth: dict = Depends(required_auth)
+) -> IntResponse:
     return IntResponse(
-        data=await retrieve_new_lost_report_count(),
+        data=await retrieve_new_lost_report_count(request),
         message="Lost Report count retrieved",
     )
 
@@ -412,10 +431,11 @@ async def get_new_report_count(auth: dict = Depends(required_auth)) -> IntRespon
     response_model=LostReportItemsResponse,
 )
 async def get_new_reports(
-    auth: dict = Depends(required_auth),
+    request: Request, auth: dict = Depends(required_auth)
 ) -> LostReportItemsResponse:
     return LostReportItemsResponse(
-        data=await retrieve_new_lost_reports(), message="New Lost Reports retrieved"
+        data=await retrieve_new_lost_reports(request),
+        message="New Lost Reports retrieved",
     )
 
 
@@ -425,9 +445,9 @@ async def get_new_reports(
     response_model=BoolResponse,
 )
 async def mark_new_report_as_viewed(
-    id: ObjectId, auth: dict = Depends(required_auth)
+    request: Request, id: ObjectId, auth: dict = Depends(required_auth)
 ) -> BoolResponse:
-    if await mark_lost_report_as_viewed(id):
+    if await mark_lost_report_as_viewed(request, str(id)):
         return BoolResponse(data=True, message="New report marked as viewed")
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,

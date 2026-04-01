@@ -6,8 +6,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from server.config import settings
+from server.database.backtest import backtest_db_setup
 from server.database.laf import laf_db_setup
-from server.database.valkey import valkey_setup
+from server.database.mongo import mongo_setup, mongo_shutdown
+from server.database.valkey import valkey_setup, valkey_shutdown
 from server.routes.auth import router as AuthRouter
 from server.routes.backtest import router as BacktestRouter
 from server.routes.laf import router as LAFRouter
@@ -44,11 +46,14 @@ if not ("pytest" in sys.modules or settings.TESTING):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # This runs during the startup phase
-    await laf_db_setup()
+    await mongo_setup(app)
+    await laf_db_setup(app)
+    await backtest_db_setup(app)
     await valkey_setup(app)
     yield  # Application runs here
     # This runs during the shutdown phase
-    # Any cleanup logic can go here
+    await valkey_shutdown(app)
+    await mongo_shutdown(app)
 
 
 app = FastAPI(lifespan=lifespan, root_path=settings.ROOT_PATH)

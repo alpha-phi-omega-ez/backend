@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from server.database.backtest import (
     retrieve_backtest,
@@ -21,8 +21,8 @@ router = APIRouter()
     response_description="Course Code list retrieved",
     response_model=StringListResponse,
 )
-async def get_coursecodes() -> StringListResponse:
-    course_codes = await retrieve_coursecodes()
+async def get_coursecodes(request: Request) -> StringListResponse:
+    course_codes = await retrieve_coursecodes(request)
     return StringListResponse(
         data=course_codes, message="Course Codes data retrieved successfully"
     )
@@ -33,8 +33,8 @@ async def get_coursecodes() -> StringListResponse:
     response_description="Courses list retrieved",
     response_model=CoursesResponse,
 )
-async def get_courses(course_code: CourseCode) -> CoursesResponse:
-    courses = await retrieve_courses(course_code)
+async def get_courses(request: Request, course_code: CourseCode) -> CoursesResponse:
+    courses = await retrieve_courses(request, course_code)
     return CoursesResponse(data=courses, message="Courses data retrieved successfully")
 
 
@@ -43,8 +43,8 @@ async def get_courses(course_code: CourseCode) -> CoursesResponse:
     response_description="Backtests retrieved",
     response_model=BacktestsReponse,
 )
-async def get_backtest(course_id: CourseId) -> BacktestsReponse:
-    backtest = await retrieve_backtest(course_id)
+async def get_backtest(request: Request, course_id: CourseId) -> BacktestsReponse:
+    backtest = await retrieve_backtest(request, course_id)
     return BacktestsReponse(
         data=backtest, message="Backtests data retrieved successfully"
     )
