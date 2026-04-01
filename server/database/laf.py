@@ -1,3 +1,4 @@
+import logging
 import re
 from asyncio import gather
 from datetime import datetime
@@ -6,6 +7,7 @@ from typing import Union
 from aiocache import cached
 from bson import ObjectId
 from fastapi import FastAPI, HTTPException, Request, status
+from pymongo.errors import DuplicateKeyError
 
 from server.helpers.cache import cache_key_exclude_request
 from server.helpers.db import (
@@ -15,6 +17,8 @@ from server.helpers.db import (
 )
 from server.helpers.sanitize import is_valid_object_id, reject_mongo_operators
 from server.models.laf import ArchivedLAFItem, ExpiredItem, LAFItem, LostReportItem
+
+logger = logging.getLogger(__name__)
 
 
 async def laf_db_setup(app: FastAPI) -> None:
@@ -31,6 +35,9 @@ async def laf_db_setup(app: FastAPI) -> None:
     await laf_items_collection.create_index("archived")
     await laf_items_collection.create_index([("archived", 1), ("type_id", 1)])
     await laf_items_collection.create_index([("archived", 1), ("date", -1)])
+    await laf_items_collection.create_index(
+        [("archived", 1), ("type_id", 1), ("date", -1)]
+    )
 
     # Lost Reports indexes
     await lost_reports_collection.create_index("date")
@@ -38,15 +45,32 @@ async def laf_db_setup(app: FastAPI) -> None:
     await lost_reports_collection.create_index("type_id")
     await lost_reports_collection.create_index("archived")
     await lost_reports_collection.create_index("viewed")
-    await lost_reports_collection.create_index([("viewed", 1), ("archived", 1)])
+    await lost_reports_collection.create_index(
+        [("viewed", 1), ("archived", 1), ("date", -1)]
+    )
     await lost_reports_collection.create_index([("archived", 1), ("date", -1)])
+    await lost_reports_collection.create_index(
+        [("archived", 1), ("type_id", 1), ("date", -1)]
+    )
 
-    # LAF Types indexes
-    await laf_types_collection.create_index("type", unique=True)
+    # LAF Types indexes - unique constraint for data integrity
+    try:
+        await laf_types_collection.create_index("type", unique=True)
+    except DuplicateKeyError:
+        logger.warning(
+            "Duplicate LAF types found - skipping unique index creation. "
+            "Run migration to remove duplicates."
+        )
     await laf_types_collection.create_index("view")
 
-    # LAF Locations indexes
-    await laf_locations_collection.create_index("location", unique=True)
+    # LAF Locations indexes - unique constraint for data integrity
+    try:
+        await laf_locations_collection.create_index("location", unique=True)
+    except DuplicateKeyError:
+        logger.warning(
+            "Duplicate LAF locations found - skipping unique index creation. "
+            "Run migration to remove duplicates."
+        )
 
 
 # Cache for 1 hour

@@ -108,13 +108,13 @@ async def update_loanertech(request: Request, id: int, data: dict) -> bool:
     return False
 
 
-# Delete a student from the database
+# Delete a loanertech item from the database
 async def delete_loanertech(request: Request, id: int) -> bool:
     loanertech_collection = request.app.state.mongo_database.get_collection(
         "loanertech_collection"
     )
-    student = await loanertech_collection.find_one({"_id": id})
-    if student:
+    loanertech = await loanertech_collection.find_one({"_id": id})
+    if loanertech:
         await loanertech_collection.delete_one({"_id": id})
         return True
     return False
