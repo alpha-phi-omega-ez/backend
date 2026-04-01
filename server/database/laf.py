@@ -21,10 +21,32 @@ async def laf_db_setup(app: FastAPI) -> None:
     database = app.state.mongo_database
     laf_items_collection = database.get_collection("laf_items")
     lost_reports_collection = database.get_collection("lost_reports")
+    laf_types_collection = database.get_collection("laf_types")
+    laf_locations_collection = database.get_collection("laf_locations")
+
+    # LAF Items indexes
     await laf_items_collection.create_index("date")
-    await lost_reports_collection.create_index("date")
     await laf_items_collection.create_index([("description", "text")])
+    await laf_items_collection.create_index("type_id")
+    await laf_items_collection.create_index("archived")
+    await laf_items_collection.create_index([("archived", 1), ("type_id", 1)])
+    await laf_items_collection.create_index([("archived", 1), ("date", -1)])
+
+    # Lost Reports indexes
+    await lost_reports_collection.create_index("date")
     await lost_reports_collection.create_index([("description", "text")])
+    await lost_reports_collection.create_index("type_id")
+    await lost_reports_collection.create_index("archived")
+    await lost_reports_collection.create_index("viewed")
+    await lost_reports_collection.create_index([("viewed", 1), ("archived", 1)])
+    await lost_reports_collection.create_index([("archived", 1), ("date", -1)])
+
+    # LAF Types indexes
+    await laf_types_collection.create_index("type", unique=True)
+    await laf_types_collection.create_index("view")
+
+    # LAF Locations indexes
+    await laf_locations_collection.create_index("location", unique=True)
 
 
 # Cache for 1 hour

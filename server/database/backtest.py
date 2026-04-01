@@ -1,10 +1,23 @@
 from aiocache import cached
 from bson import ObjectId
-from fastapi import HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 
 from server.helpers.cache import cache_key_exclude_request
 from server.helpers.sanitize import is_valid_object_id
 from server.models.backtest import Backtests, Course
+
+
+async def backtest_db_setup(app: FastAPI) -> None:
+    database = app.state.mongo_database
+    backtest_course_code_collection = database.get_collection(
+        "backtest_course_code_collection"
+    )
+    backtest_courses_collection = database.get_collection("backtest_courses_collection")
+    backtest_collection = database.get_collection("backtest_collection")
+
+    await backtest_course_code_collection.create_index("course_code")
+    await backtest_courses_collection.create_index("course_code")
+    await backtest_collection.create_index("course_ids")
 
 
 async def course_helper(course) -> Course:
