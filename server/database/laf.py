@@ -5,9 +5,9 @@ from typing import Union
 
 from aiocache import cached
 from bson import ObjectId
-from fastapi import HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, status
 
-from server.database import database
+from server.helpers.cache import cache_key_exclude_request
 from server.helpers.db import (
     async_dict_itr,
     datetime_time_delta,
@@ -16,15 +16,11 @@ from server.helpers.db import (
 from server.helpers.sanitize import is_valid_object_id, reject_mongo_operators
 from server.models.laf import ArchivedLAFItem, ExpiredItem, LAFItem, LostReportItem
 
-sequence_id_collection = database.get_collection("sequence_id")
-laf_items_collection = database.get_collection("laf_items")
-lost_reports_collection = database.get_collection("lost_reports")
-laf_types_collection = database.get_collection("laf_types")
-laf_locations_collection = database.get_collection("laf_locations")
-laf_matching_collection = database.get_collection("laf_matching")
 
-
-async def laf_db_setup() -> None:
+async def laf_db_setup(app: FastAPI) -> None:
+    database = app.state.mongo_database
+    laf_items_collection = database.get_collection("laf_items")
+    lost_reports_collection = database.get_collection("lost_reports")
     await laf_items_collection.create_index("date")
     await lost_reports_collection.create_index("date")
     await laf_items_collection.create_index([("description", "text")])
@@ -32,8 +28,9 @@ async def laf_db_setup() -> None:
 
 
 # Cache for 1 hour
-@cached(ttl=3600)
-async def get_type_id(type_in: str) -> ObjectId:
+@cached(ttl=3600, key_builder=cache_key_exclude_request)
+async def get_type_id(request: Request, type_in: str) -> ObjectId:
+    laf_types_collection = request.app.state.mongo_database.get_collection("laf_types")
     laf_type = await laf_types_collection.find_one({"type": type_in})
     if not laf_type:
         raise HTTPException(
@@ -43,8 +40,9 @@ async def get_type_id(type_in: str) -> ObjectId:
 
 
 # Cache for 1 day
-@cached(ttl=86400)
-async def get_type_from_id(id: ObjectId) -> dict:
+@cached(ttl=86400, key_builder=cache_key_exclude_request)
+async def get_type_from_id(request: Request, id: ObjectId) -> dict:
+    laf_types_collection = request.app.state.mongo_database.get_collection("laf_types")
     laf_type = await laf_types_collection.find_one({"_id": id})
     if not laf_type:
         raise HTTPException(
@@ -54,9 +52,9 @@ async def get_type_from_id(id: ObjectId) -> dict:
 
 
 # Helper functions to convert MongoDB documents to Python dictionaries
-async def laf_helper(laf: dict) -> LAFItem:
+async def laf_helper(request: Request, laf: dict) -> LAFItem:
     date = laf["date"]
-    laf_type = await get_type_from_id(laf["type_id"])
+    laf_type = await get_type_from_id(request, laf["type_id"])
 
     return {
         "id": laf["_id"],
@@ -68,10 +66,10 @@ async def laf_helper(laf: dict) -> LAFItem:
     }
 
 
-async def laf_archived_helper(laf: dict) -> ArchivedLAFItem:
+async def laf_archived_helper(request: Request, laf: dict) -> ArchivedLAFItem:
     returned_date = laf["returned"]
     date = laf["date"]
-    laf_type = await get_type_from_id(laf["type_id"])
+    laf_type = await get_type_from_id(request, laf["type_id"])
 
     return {
         "id": laf["_id"],
@@ -88,9 +86,9 @@ async def laf_archived_helper(laf: dict) -> ArchivedLAFItem:
     }
 
 
-async def lost_report_helper(lost_report: dict) -> LostReportItem:
+async def lost_report_helper(request: Request, lost_report: dict) -> LostReportItem:
     date = lost_report["date"]
-    laf_type = await get_type_from_id(lost_report["type_id"])
+    laf_type = await get_type_from_id(request, lost_report["type_id"])
 
     return {
         "id": str(lost_report["_id"]),
@@ -109,9 +107,13 @@ async def lost_report_helper(lost_report: dict) -> LostReportItem:
 
 
 # Add a new laf item into to the database
-async def add_laf(laf_data: dict) -> LAFItem:
+async def add_laf(request: Request, laf_data: dict) -> LAFItem:
     reject_mongo_operators(laf_data)
-    type_id = await get_type_id(laf_data["type"])
+    database = request.app.state.mongo_database
+    sequence_id_collection = database.get_collection("sequence_id")
+    laf_items_collection = database.get_collection("laf_items")
+
+    type_id = await get_type_id(request, laf_data["type"])
     del laf_data["type"]
 
     now = datetime.now()
@@ -134,15 +136,18 @@ async def add_laf(laf_data: dict) -> LAFItem:
     laf_item = await laf_items_collection.insert_one(laf_data)
     new_laf_item = await laf_items_collection.find_one({"_id": laf_item.inserted_id})
     if new_laf_item:
-        return await laf_helper(new_laf_item)
+        return await laf_helper(request, new_laf_item)
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         detail="Failed to create LAF item",
     )
 
 
-async def update_laf(laf_id: int, laf_data: dict, now: datetime) -> bool:
+async def update_laf(
+    request: Request, laf_id: int, laf_data: dict, now: datetime
+) -> bool:
     reject_mongo_operators(laf_data)
+    laf_items_collection = request.app.state.mongo_database.get_collection("laf_items")
 
     laf_item = await laf_items_collection.find_one({"_id": laf_id})
     if laf_item is None:
@@ -150,7 +155,7 @@ async def update_laf(laf_id: int, laf_data: dict, now: datetime) -> bool:
 
     laf_data["updated"] = now
     if laf_data.get("type", False):
-        type_id = await get_type_id(laf_data["type"])
+        type_id = await get_type_id(request, laf_data["type"])
         del laf_data["type"]
         laf_data["type_id"] = type_id
     updated_laf_item = await laf_items_collection.update_one(
@@ -162,24 +167,25 @@ async def update_laf(laf_id: int, laf_data: dict, now: datetime) -> bool:
     return False
 
 
-async def found_laf_item(laf_id: int, laf_found: dict) -> bool:
+async def found_laf_item(request: Request, laf_id: int, laf_found: dict) -> bool:
     now = datetime.now()
 
     laf_found["found"] = True
     laf_found["archived"] = True
     laf_found["returned"] = now
 
-    return await update_laf(laf_id, laf_found, now)
+    return await update_laf(request, laf_id, laf_found, now)
 
 
-async def update_laf_item(laf_id: int, laf_data: dict) -> bool:
+async def update_laf_item(request: Request, laf_id: int, laf_data: dict) -> bool:
     now = datetime.now()
 
-    return await update_laf(laf_id, laf_data, now)
+    return await update_laf(request, laf_id, laf_data, now)
 
 
-async def archive_laf_items(ids: list[int]) -> None:
+async def archive_laf_items(request: Request, ids: list[int]) -> None:
     now = datetime.now()
+    laf_items_collection = request.app.state.mongo_database.get_collection("laf_items")
     await laf_items_collection.update_many(
         {"_id": {"$in": ids}},
         {"$set": {"archived": True, "updated": now}},
@@ -200,7 +206,10 @@ laf_item_query_mapping = {
 
 
 # Retrieve all relevant laf items from the database
-async def retrieve_laf_items(laf_query_data: dict, archived: bool = False) -> list:
+async def retrieve_laf_items(
+    request: Request, laf_query_data: dict, archived: bool = False
+) -> list:
+    laf_items_collection = request.app.state.mongo_database.get_collection("laf_items")
     query: dict[str, Union[bool, dict, ObjectId, str, int]] = {"archived": archived}
     if laf_query_data["id"]:
         query["_id"] = int(laf_query_data["id"])
@@ -209,32 +218,36 @@ async def retrieve_laf_items(laf_query_data: dict, archived: bool = False) -> li
             if v is not None and k in laf_item_query_mapping:
                 query.update(laf_item_query_mapping[k](v, laf_query_data))
             elif k == "type" and v:
-                query["type_id"] = await get_type_id(v)
+                query["type_id"] = await get_type_id(request, v)
 
     laf_items = []
     # Use .skip before limit for pagination
     async for laf_item in laf_items_collection.find(query).sort("date", -1).limit(30):
         if archived:
-            laf_items.append(await laf_archived_helper(laf_item))
+            laf_items.append(await laf_archived_helper(request, laf_item))
         else:
-            laf_items.append(await laf_helper(laf_item))
+            laf_items.append(await laf_helper(request, laf_item))
     return laf_items
 
 
-@cached(ttl=86400)
-async def water_bottle_expiration_query(wb: int, c: int, u: int, now: datetime) -> dict:
+@cached(ttl=86400, key_builder=cache_key_exclude_request)
+async def water_bottle_expiration_query(
+    request: Request, wb: int, c: int, u: int, now: datetime
+) -> dict:
     cutoff_date = await datetime_time_delta(now, wb)
-    type_id = await get_type_id("Water Bottle")
+    type_id = await get_type_id(request, "Water Bottle")
     return {
         "type_id": type_id,
         "date": {"$lte": cutoff_date},
     }
 
 
-@cached(ttl=86400)
-async def attire_expiration_query(wb: int, c: int, u: int, now: datetime) -> dict:
+@cached(ttl=86400, key_builder=cache_key_exclude_request)
+async def attire_expiration_query(
+    request: Request, wb: int, c: int, u: int, now: datetime
+) -> dict:
     cutoff_date = await datetime_time_delta(now, c)
-    type_id = await get_type_id("Attire")
+    type_id = await get_type_id(request, "Attire")
 
     return {
         "type_id": type_id,
@@ -242,10 +255,12 @@ async def attire_expiration_query(wb: int, c: int, u: int, now: datetime) -> dic
     }
 
 
-@cached(ttl=86400)
-async def umbrella_expiration_query(wb: int, c: int, u: int, now: datetime) -> dict:
+@cached(ttl=86400, key_builder=cache_key_exclude_request)
+async def umbrella_expiration_query(
+    request: Request, wb: int, c: int, u: int, now: datetime
+) -> dict:
     cutoff_date = await datetime_time_delta(now, u)
-    type_id = await get_type_id("Umbrellas")
+    type_id = await get_type_id(request, "Umbrellas")
 
     return {
         "type_id": type_id,
@@ -260,29 +275,34 @@ type_expiration_mapping = {
 }
 
 
-async def fetch_expired_laf_items(expired_query: dict) -> list[LAFItem]:
+async def fetch_expired_laf_items(
+    request: Request, expired_query: dict
+) -> list[LAFItem]:
+    laf_items_collection = request.app.state.mongo_database.get_collection("laf_items")
     expired_laf_items = []
     async for laf_item in (
         laf_items_collection.find(expired_query).sort("date", -1).limit(30)
     ):
-        expired_laf_items.append(await laf_helper(laf_item))
+        expired_laf_items.append(await laf_helper(request, laf_item))
 
     return expired_laf_items
 
 
 async def fetch_potentially_expired_laf_items(
-    potentially_expired_query: dict,
+    request: Request, potentially_expired_query: dict
 ) -> list[LAFItem]:
+    laf_items_collection = request.app.state.mongo_database.get_collection("laf_items")
     potentially_expired_laf_items = []
     async for laf_item in (
         laf_items_collection.find(potentially_expired_query).sort("date", -1).limit(30)
     ):
-        potentially_expired_laf_items.append(await laf_helper(laf_item))
+        potentially_expired_laf_items.append(await laf_helper(request, laf_item))
 
     return potentially_expired_laf_items
 
 
 async def retrieve_expired_laf(
+    request: Request,
     water_bottle_expiration: int,
     attire_expiration: int,
     umbrella_expiration: int,
@@ -295,18 +315,21 @@ async def retrieve_expired_laf(
     if type == "All":
         wb, a, u, expensive_cutoff_date, inexpensive_cutoff_date = await gather(
             water_bottle_expiration_query(
+                request,
                 water_bottle_expiration,
                 attire_expiration,
                 umbrella_expiration,
                 now,
             ),
             attire_expiration_query(
+                request,
                 water_bottle_expiration,
                 attire_expiration,
                 umbrella_expiration,
                 now,
             ),
             umbrella_expiration_query(
+                request,
                 water_bottle_expiration,
                 attire_expiration,
                 umbrella_expiration,
@@ -317,8 +340,8 @@ async def retrieve_expired_laf(
         )
 
         type_ids = []
-        for type in type_expiration_mapping.keys():
-            type_id = await get_type_id(type)
+        for type_name in type_expiration_mapping.keys():
+            type_id = await get_type_id(request, type_name)
             type_ids.append(type_id)
 
         expired_query = {
@@ -340,8 +363,8 @@ async def retrieve_expired_laf(
         }
 
         expired_laf_items, potentially_expired_laf_items = await gather(
-            fetch_expired_laf_items(expired_query),
-            fetch_potentially_expired_laf_items(potentially_expired_query),
+            fetch_expired_laf_items(request, expired_query),
+            fetch_potentially_expired_laf_items(request, potentially_expired_query),
         )
 
         return {
@@ -350,10 +373,17 @@ async def retrieve_expired_laf(
         }
 
     if type in type_expiration_mapping:
+        laf_items_collection = request.app.state.mongo_database.get_collection(
+            "laf_items"
+        )
         query = {"archived": False}
         query.update(
             await type_expiration_mapping[type](
-                water_bottle_expiration, attire_expiration, umbrella_expiration, now
+                request,
+                water_bottle_expiration,
+                attire_expiration,
+                umbrella_expiration,
+                now,
             )
         )
 
@@ -361,7 +391,7 @@ async def retrieve_expired_laf(
         async for laf_item in (
             laf_items_collection.find(query).sort("date", -1).limit(30)
         ):
-            laf_items.append(await laf_helper(laf_item))
+            laf_items.append(await laf_helper(request, laf_item))
 
         return {
             "expired": laf_items,
@@ -373,7 +403,7 @@ async def retrieve_expired_laf(
         datetime_time_delta(now, inexpensive_expiration),
     )
 
-    type_id = await get_type_id(type)
+    type_id = await get_type_id(request, type)
     expired_query = {
         "archived": False,
         "date": {"$lte": expensive_cutoff_date},
@@ -386,8 +416,8 @@ async def retrieve_expired_laf(
     }
 
     expired_laf_items, potentially_expired_laf_items = await gather(
-        fetch_expired_laf_items(expired_query),
-        fetch_potentially_expired_laf_items(potentially_expired_query),
+        fetch_expired_laf_items(request, expired_query),
+        fetch_potentially_expired_laf_items(request, potentially_expired_query),
     )
 
     return {
@@ -400,9 +430,15 @@ async def retrieve_expired_laf(
 
 
 # Add a new lost report into to the database
-async def add_lost_report(lost_report_data: dict, auth: bool) -> LostReportItem:
+async def add_lost_report(
+    request: Request, lost_report_data: dict, auth: bool
+) -> LostReportItem:
     reject_mongo_operators(lost_report_data)
-    type_id = await get_type_id(lost_report_data["type"])
+    lost_reports_collection = request.app.state.mongo_database.get_collection(
+        "lost_reports"
+    )
+
+    type_id = await get_type_id(request, lost_report_data["type"])
     del lost_report_data["type"]
     now = datetime.now()
     lost_report_data["description"] = lost_report_data["description"].strip()
@@ -420,7 +456,7 @@ async def add_lost_report(lost_report_data: dict, auth: bool) -> LostReportItem:
         {"_id": lost_report.inserted_id}
     )
     if new_lost_report:
-        return await lost_report_helper(new_lost_report)
+        return await lost_report_helper(request, new_lost_report)
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         detail="Failed to create Lost Report",
@@ -428,12 +464,18 @@ async def add_lost_report(lost_report_data: dict, auth: bool) -> LostReportItem:
 
 
 async def update_lost_report(
-    lost_report_id: str, lost_report_data: dict, now: datetime
+    request: Request,
+    lost_report_id: str,
+    lost_report_data: dict,
+    now: datetime,
 ) -> bool:
     if not is_valid_object_id(lost_report_id):
         return False
 
     reject_mongo_operators(lost_report_data)
+    lost_reports_collection = request.app.state.mongo_database.get_collection(
+        "lost_reports"
+    )
 
     lost_report_id_bson = ObjectId(lost_report_id)
     lost_report = await lost_reports_collection.find_one({"_id": lost_report_id_bson})
@@ -443,7 +485,7 @@ async def update_lost_report(
     lost_report_data["updated"] = now
     lost_report_data["viewed"] = True
     if lost_report_data.get("type", False):
-        type_id = await get_type_id(lost_report_data["type"])
+        type_id = await get_type_id(request, lost_report_data["type"])
         del lost_report_data["type"]
         lost_report_data["type_id"] = type_id
     updated_lost_report = await lost_reports_collection.update_one(
@@ -455,7 +497,7 @@ async def update_lost_report(
     return False
 
 
-async def found_lost_report(lost_report_id: str) -> bool:
+async def found_lost_report(request: Request, lost_report_id: str) -> bool:
     now = datetime.now()
 
     lost_report_found = {
@@ -464,35 +506,43 @@ async def found_lost_report(lost_report_id: str) -> bool:
         "returned": now,
     }
 
-    return await update_lost_report(lost_report_id, lost_report_found, now)
+    return await update_lost_report(request, lost_report_id, lost_report_found, now)
 
 
-async def update_lost_report_item(lost_report_id: str, lost_report_data: dict) -> bool:
+async def update_lost_report_item(
+    request: Request, lost_report_id: str, lost_report_data: dict
+) -> bool:
     now = datetime.now()
 
-    return await update_lost_report(lost_report_id, lost_report_data, now)
+    return await update_lost_report(request, lost_report_id, lost_report_data, now)
 
 
-async def retrieve_new_lost_report_count() -> int:
+async def retrieve_new_lost_report_count(request: Request) -> int:
+    lost_reports_collection = request.app.state.mongo_database.get_collection(
+        "lost_reports"
+    )
     return await lost_reports_collection.count_documents(
         {"viewed": False, "archived": False}
     )
 
 
-async def retrieve_new_lost_reports(limit: int = 30) -> list:
+async def retrieve_new_lost_reports(request: Request, limit: int = 30) -> list:
+    lost_reports_collection = request.app.state.mongo_database.get_collection(
+        "lost_reports"
+    )
     lost_reports = []
     async for laf_item in (
         lost_reports_collection.find({"viewed": False, "archived": False})
         .sort("date", -1)
         .limit(limit)
     ):
-        lost_reports.append(await lost_report_helper(laf_item))
+        lost_reports.append(await lost_report_helper(request, laf_item))
     return lost_reports
 
 
-async def mark_lost_report_as_viewed(lost_report_id: str) -> bool:
+async def mark_lost_report_as_viewed(request: Request, lost_report_id: str) -> bool:
     now = datetime.now()
-    return await update_lost_report(lost_report_id, {"viewed": True}, now)
+    return await update_lost_report(request, lost_report_id, {"viewed": True}, now)
 
 
 lost_report_query_mapping = {
@@ -512,50 +562,62 @@ lost_report_query_mapping = {
 
 # Retrieve all relevant lost reports from the database
 async def retrieve_lost_reports(
-    lost_report_query_data: dict, archived: bool = False
+    request: Request, lost_report_query_data: dict, archived: bool = False
 ) -> list:
+    lost_reports_collection = request.app.state.mongo_database.get_collection(
+        "lost_reports"
+    )
     query: dict[str, Union[bool, dict, ObjectId, str]] = {"archived": archived}
     async for k, v in async_dict_itr(lost_report_query_data):
         if v is not None and k in lost_report_query_mapping:
             query.update(lost_report_query_mapping[k](v, lost_report_query_data))
         elif k == "type" and v:
-            query["type_id"] = await get_type_id(v)
+            query["type_id"] = await get_type_id(request, v)
 
     lost_reports = []
     # Use .skip before limit for pagination
     async for laf_item in (
         lost_reports_collection.find(query).sort("date", -1).limit(30)
     ):
-        lost_reports.append(await lost_report_helper(laf_item))
+        lost_reports.append(await lost_report_helper(request, laf_item))
     return lost_reports
 
 
-@cached(ttl=86400)
-async def retrieve_laf_types() -> list[str]:
+@cached(ttl=86400, key_builder=cache_key_exclude_request)
+async def retrieve_laf_types(request: Request) -> list[str]:
+    laf_types_collection = request.app.state.mongo_database.get_collection("laf_types")
     laf_types = await laf_types_collection.find({"view": True}).to_list(length=None)
     return [laf_type["type"] for laf_type in laf_types]
 
 
-async def add_laf_type(laf_type: str) -> bool:
+async def add_laf_type(request: Request, laf_type: str) -> bool:
+    database = request.app.state.mongo_database
+    laf_types_collection = database.get_collection("laf_types")
     laf_type_added = await laf_types_collection.insert_one({"type": laf_type})
-    new_laf_type = await laf_items_collection.find_one(
+    new_laf_type = await laf_types_collection.find_one(
         {"_id": laf_type_added.inserted_id}
     )
     return new_laf_type is not None
 
 
-async def delete_laf_type(laf_type: str) -> bool:
+async def delete_laf_type(request: Request, laf_type: str) -> bool:
+    laf_types_collection = request.app.state.mongo_database.get_collection("laf_types")
     laf_type_deleted = await laf_types_collection.delete_one({"type": laf_type})
     return laf_type_deleted.deleted_count > 0
 
 
-@cached(ttl=86400)
-async def retrieve_laf_locations() -> list[str]:
+@cached(ttl=86400, key_builder=cache_key_exclude_request)
+async def retrieve_laf_locations(request: Request) -> list[str]:
+    laf_locations_collection = request.app.state.mongo_database.get_collection(
+        "laf_locations"
+    )
     laf_locations = await laf_locations_collection.distinct("location")
     return laf_locations
 
 
-async def add_laf_location(laf_location: str) -> bool:
+async def add_laf_location(request: Request, laf_location: str) -> bool:
+    database = request.app.state.mongo_database
+    laf_locations_collection = database.get_collection("laf_locations")
     laf_location_added = await laf_locations_collection.insert_one(
         {"location": laf_location}
     )
@@ -565,7 +627,10 @@ async def add_laf_location(laf_location: str) -> bool:
     return new_laf_location is not None
 
 
-async def delete_laf_location(laf_location: str) -> bool:
+async def delete_laf_location(request: Request, laf_location: str) -> bool:
+    laf_locations_collection = request.app.state.mongo_database.get_collection(
+        "laf_locations"
+    )
     laf_location_deleted = await laf_locations_collection.delete_one(
         {"location": laf_location}
     )

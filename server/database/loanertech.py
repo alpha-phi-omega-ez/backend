@@ -1,12 +1,8 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 
-from server.database import database
 from server.helpers.db import get_next_sequence_value
 from server.helpers.sanitize import reject_mongo_operators
 from server.models.loanertech import LoanerTechItem, LoanerTechItemUnauthorized
-
-sequence_id_collection = database.get_collection("sequence_id")
-loanertech_collection = database.get_collection("loanertech_collection")
 
 
 def loanertech_helper(loanertech: dict) -> LoanerTechItem:
@@ -30,7 +26,12 @@ def loanertech_helper_unprotected(loanertech: dict) -> LoanerTechItemUnauthorize
 
 # Retrieve all loaner tech items present in the database with data
 # for unauthenticated users
-async def retrieve_loanertechs_unauthenticated() -> list[LoanerTechItemUnauthorized]:
+async def retrieve_loanertechs_unauthenticated(
+    request: Request,
+) -> list[LoanerTechItemUnauthorized]:
+    loanertech_collection = request.app.state.mongo_database.get_collection(
+        "loanertech_collection"
+    )
     loanertechs = []
     async for loanertech in loanertech_collection.find().sort("_id"):
         loanertechs.append(loanertech_helper_unprotected(loanertech))
@@ -39,7 +40,10 @@ async def retrieve_loanertechs_unauthenticated() -> list[LoanerTechItemUnauthori
 
 # Retrieve all loaner tech items present in the database with
 # data for authenticated users
-async def retrieve_loanertechs() -> list[LoanerTechItem]:
+async def retrieve_loanertechs(request: Request) -> list[LoanerTechItem]:
+    loanertech_collection = request.app.state.mongo_database.get_collection(
+        "loanertech_collection"
+    )
     loanertechs = []
     async for loanertech in loanertech_collection.find().sort("_id"):
         loanertechs.append(loanertech_helper(loanertech))
@@ -47,9 +51,12 @@ async def retrieve_loanertechs() -> list[LoanerTechItem]:
 
 
 # Add a new loanertech item into to the database
-async def add_loanertech(loanertech_data: dict) -> LoanerTechItem:
+async def add_loanertech(request: Request, loanertech_data: dict) -> LoanerTechItem:
     reject_mongo_operators(loanertech_data)
-    # Add the ID to the loanertech data
+    database = request.app.state.mongo_database
+    sequence_id_collection = database.get_collection("sequence_id")
+    loanertech_collection = database.get_collection("loanertech_collection")
+
     loanertech_data["_id"] = await get_next_sequence_value(
         "loanertech_id",
         sequence_id_collection,
@@ -73,7 +80,10 @@ async def add_loanertech(loanertech_data: dict) -> LoanerTechItem:
 
 
 # Retrieve a loanertech item with a matching ID
-async def retrieve_loanertech(id: int) -> LoanerTechItem | None:
+async def retrieve_loanertech(request: Request, id: int) -> LoanerTechItem | None:
+    loanertech_collection = request.app.state.mongo_database.get_collection(
+        "loanertech_collection"
+    )
     loanertech = await loanertech_collection.find_one({"_id": id})
     if loanertech:
         return loanertech_helper(loanertech)
@@ -81,11 +91,13 @@ async def retrieve_loanertech(id: int) -> LoanerTechItem | None:
 
 
 # Update a loanertech item with a matching ID
-async def update_loanertech(id: int, data: dict) -> bool:
-    # Return false if an empty request body is sent.
+async def update_loanertech(request: Request, id: int, data: dict) -> bool:
     if len(data) < 1:
         return False
     reject_mongo_operators(data)
+    loanertech_collection = request.app.state.mongo_database.get_collection(
+        "loanertech_collection"
+    )
     loanertech = await loanertech_collection.find_one({"_id": id})
     if loanertech:
         updated_loanertech = await loanertech_collection.update_one(
@@ -97,7 +109,10 @@ async def update_loanertech(id: int, data: dict) -> bool:
 
 
 # Delete a student from the database
-async def delete_loanertech(id: int) -> bool:
+async def delete_loanertech(request: Request, id: int) -> bool:
+    loanertech_collection = request.app.state.mongo_database.get_collection(
+        "loanertech_collection"
+    )
     student = await loanertech_collection.find_one({"_id": id})
     if student:
         await loanertech_collection.delete_one({"_id": id})
