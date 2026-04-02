@@ -17,12 +17,12 @@ DESCRIPTION_MATCH_THRESHOLD = 55
 SYNONYM_GROUPS = [
     {"hat", "beanie", "beenie", "cap", "toque", "headwear"},
     {"jacket", "coat", "hoodie", "sweater", "pullover", "outerwear", "attire"},
-    {"shirt", "tee", "tshirt", "t-shirt", "top"},
+    {"shirt", "tee", "tshirt"},
     {"pants", "trousers", "jeans", "slacks", "bottoms"},
     {"shorts", "athleticshorts", "gymshorts"},
     {"shoes", "sneakers", "trainers", "footwear", "kicks"},
     {"boots", "boot"},
-    {"sandals", "slides", "flipflops", "flip-flops"},
+    {"sandals", "slides", "flipflops"},
     {"gloves", "mittens"},
     {"scarf", "scarves"},
     {"glasses", "eyeglasses", "spectacles"},
@@ -50,11 +50,11 @@ SYNONYM_GROUPS = [
     {"necklace", "chain"},
     {"earring", "earrings"},
     {"umbrella", "parasol"},
-    {"bottle", "waterbottle", "water bottle", "flask", "thermos", "hydroflask"},
+    {"bottle", "waterbottle", "flask", "thermos", "hydroflask"},
     {"mug", "tumbler", "cup"},
     {"scooter", "eskate", "skateboard", "longboard"},
     {"helmet", "bikehelmet"},
-    {"usb", "flashdrive", "thumbdrive", "pendrive"},
+    {"usb", "flashdrive", "thumbdrive"},
 ]
 
 TOKEN_TO_CANONICAL: dict[str, str] = {
