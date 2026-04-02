@@ -54,6 +54,19 @@ def _make_laf_query(**overrides: object) -> dict:
     return base
 
 
+def _request_with_mongo_collection(collection: MagicMock) -> MagicMock:
+    """Request mock: ``mongo_database.get_collection`` returns ``collection``."""
+    mongo_db = MagicMock()
+    mongo_db.get_collection = MagicMock(return_value=collection)
+    state = MagicMock()
+    state.mongo_database = mongo_db
+    app = MagicMock()
+    app.state = state
+    request = MagicMock()
+    request.app = app
+    return request
+
+
 @pytest.fixture
 def sample_type_oid() -> ObjectId:
     return ObjectId("674000000000000000000001")
@@ -95,19 +108,18 @@ def test_retrieve_laf_items_ranks_by_description(
     async def _run() -> list:
         collection = MagicMock()
         collection.find = MagicMock(return_value=_FakeCursor(laf_docs))
+        request = _request_with_mongo_collection(collection)
 
         type_doc = {"type": "Other", "letter": "O"}
 
-        with (
-            patch.object(laf_module, "laf_items_collection", collection),
-            patch.object(
-                laf_module,
-                "get_type_from_id",
-                new_callable=AsyncMock,
-                return_value=type_doc,
-            ),
+        with patch.object(
+            laf_module,
+            "get_type_from_id",
+            new_callable=AsyncMock,
+            return_value=type_doc,
         ):
             return await laf_module.retrieve_laf_items(
+                request,
                 _make_laf_query(description="airpods"),
                 archived=False,
             )
@@ -127,19 +139,18 @@ def test_retrieve_laf_items_by_id_skips_description_ranking(
         target = next(d for d in laf_docs if d["_id"] == 1)
         collection = MagicMock()
         collection.find = MagicMock(return_value=_FakeCursor([target]))
+        request = _request_with_mongo_collection(collection)
 
         type_doc = {"type": "Other", "letter": "O"}
 
-        with (
-            patch.object(laf_module, "laf_items_collection", collection),
-            patch.object(
-                laf_module,
-                "get_type_from_id",
-                new_callable=AsyncMock,
-                return_value=type_doc,
-            ),
+        with patch.object(
+            laf_module,
+            "get_type_from_id",
+            new_callable=AsyncMock,
+            return_value=type_doc,
         ):
             return await laf_module.retrieve_laf_items(
+                request,
                 _make_laf_query(id=1, description="airpods"),
                 archived=False,
             )
@@ -179,18 +190,17 @@ def test_retrieve_lost_reports_ranks_by_description(sample_type_oid: ObjectId) -
     async def _run() -> list:
         collection = MagicMock()
         collection.find = MagicMock(return_value=_FakeCursor(reports))
+        request = _request_with_mongo_collection(collection)
         type_doc = {"type": "Electronics", "letter": "E"}
 
-        with (
-            patch.object(laf_module, "lost_reports_collection", collection),
-            patch.object(
-                laf_module,
-                "get_type_from_id",
-                new_callable=AsyncMock,
-                return_value=type_doc,
-            ),
+        with patch.object(
+            laf_module,
+            "get_type_from_id",
+            new_callable=AsyncMock,
+            return_value=type_doc,
         ):
             return await laf_module.retrieve_lost_reports(
+                request,
                 {
                     "date": None,
                     "dateFilter": None,
