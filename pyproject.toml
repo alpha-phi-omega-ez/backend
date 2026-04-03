@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "aiocache>=0.12.3",
+    "rapidfuzz>=3.14.1",
     "fastapi-sso>=0.17.0",
     "fastapi[standard]>=0.115.6",
     "bleach>=6.1.0",
@@ -16,6 +17,7 @@ dependencies = [
     "sentry-sdk[fastapi]>=2.20.0",
     "valkey-glide>=2.0.1",
     "pytest>=8.3.3",
+    "pytest-xdist>=3.6.0",
 ]
 
 [tool.ruff]

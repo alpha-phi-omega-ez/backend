@@ -15,6 +15,13 @@ from server.helpers.db import (
     datetime_time_delta,
     get_next_sequence_value,
 )
+from server.helpers.description_search import (
+    DESCRIPTION_SEARCH_CANDIDATE_LIMIT,
+    DESCRIPTION_SEARCH_RESULT_LIMIT,
+    build_description_prefilter,
+    normalize_search_text,
+    rank_by_description_async,
+)
 from server.helpers.sanitize import is_valid_object_id, reject_mongo_operators
 from server.models.laf import ArchivedLAFItem, ExpiredItem, LAFItem, LostReportItem
 
@@ -245,9 +252,6 @@ laf_item_query_mapping = {
         else {"date": {"$gte": laf_query_data["date"]}}
     ),
     "location": lambda v, _: {"location": {"$in": v}},
-    "description": lambda v, _: {
-        "description": {"$regex": re.escape(v.strip()), "$options": "i"}
-    },
 }
 
 
@@ -257,18 +261,42 @@ async def retrieve_laf_items(
 ) -> list:
     laf_items_collection = request.app.state.mongo_database.get_collection("laf_items")
     query: dict[str, Union[bool, dict, ObjectId, str, int]] = {"archived": archived}
+    description_query = normalize_search_text(laf_query_data.get("description") or "")
     if laf_query_data["id"]:
         query["_id"] = int(laf_query_data["id"])
     else:
         async for k, v in async_dict_itr(laf_query_data):
+            if k == "description":
+                continue
             if v is not None and k in laf_item_query_mapping:
                 query.update(laf_item_query_mapping[k](v, laf_query_data))
             elif k == "type" and v:
                 query["type_id"] = await get_type_id(request, v)
 
+    if description_query and not laf_query_data["id"]:
+        description_prefilter = build_description_prefilter(description_query)
+        if description_prefilter:
+            query.update(description_prefilter)
+
+    db_limit = (
+        DESCRIPTION_SEARCH_CANDIDATE_LIMIT
+        if description_query and not laf_query_data["id"]
+        else DESCRIPTION_SEARCH_RESULT_LIMIT
+    )
+
+    laf_item_docs = []
+    async for laf_item in (
+        laf_items_collection.find(query).sort("date", -1).limit(db_limit)
+    ):
+        laf_item_docs.append(laf_item)
+
+    if description_query and not laf_query_data["id"]:
+        laf_item_docs = await rank_by_description_async(
+            laf_item_docs, description_query
+        )
+
     laf_items = []
-    # Use .skip before limit for pagination
-    async for laf_item in laf_items_collection.find(query).sort("date", -1).limit(30):
+    for laf_item in laf_item_docs:
         if archived:
             laf_items.append(await laf_archived_helper(request, laf_item))
         else:
@@ -597,9 +625,6 @@ lost_report_query_mapping = {
         if v == "Before"
         else {"date": {"$gte": lost_report_query_data["date"]}}
     ),
-    "description": lambda v, _: {
-        "description": {"$regex": re.escape(v.strip()), "$options": "i"}
-    },
     "location": lambda v, _: {"location": {"$in": v}},
     "name": lambda v, _: {"name": {"$regex": re.escape(v.strip()), "$options": "i"}},
     "email": lambda v, _: {"email": {"$regex": re.escape(v.strip()), "$options": "i"}},
@@ -614,18 +639,42 @@ async def retrieve_lost_reports(
         "lost_reports"
     )
     query: dict[str, Union[bool, dict, ObjectId, str]] = {"archived": archived}
+    description_query = normalize_search_text(
+        lost_report_query_data.get("description") or ""
+    )
     async for k, v in async_dict_itr(lost_report_query_data):
+        if k == "description":
+            continue
         if v is not None and k in lost_report_query_mapping:
             query.update(lost_report_query_mapping[k](v, lost_report_query_data))
         elif k == "type" and v:
             query["type_id"] = await get_type_id(request, v)
 
-    lost_reports = []
-    # Use .skip before limit for pagination
-    async for laf_item in (
-        lost_reports_collection.find(query).sort("date", -1).limit(30)
+    if description_query:
+        description_prefilter = build_description_prefilter(description_query)
+        if description_prefilter:
+            query.update(description_prefilter)
+
+    db_limit = (
+        DESCRIPTION_SEARCH_CANDIDATE_LIMIT
+        if description_query
+        else DESCRIPTION_SEARCH_RESULT_LIMIT
+    )
+
+    lost_report_docs = []
+    async for lost_report in (
+        lost_reports_collection.find(query).sort("date", -1).limit(db_limit)
     ):
-        lost_reports.append(await lost_report_helper(request, laf_item))
+        lost_report_docs.append(lost_report)
+
+    if description_query:
+        lost_report_docs = await rank_by_description_async(
+            lost_report_docs, description_query
+        )
+
+    lost_reports = []
+    for lost_report in lost_report_docs:
+        lost_reports.append(await lost_report_helper(request, lost_report))
     return lost_reports
 
 

@@ -5,6 +5,7 @@ from typing import Annotated, TypedDict
 from pydantic import (
     BaseModel,
     BeforeValidator,
+    ConfigDict,
     EmailStr,
     Field,
     PlainSerializer,
@@ -92,17 +93,8 @@ LocationSingle = Annotated[str, BeforeValidator(validate_location_single)]
 
 
 class LAFItemRequest(BaseModel):
-    type: TypeString = Field(...)
-    location: Location = Field(...)
-    description: Description = Field(...)
-    date: Annotated[
-        str,
-        Field(...),
-        BeforeValidator(parse_date_flexible),
-    ]
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "type": "Apparel",
                 "location": "Union",
@@ -110,39 +102,38 @@ class LAFItemRequest(BaseModel):
                 "date": "2024-09-01",
             }
         }
+    )
 
-
-class LAFFoundItem(BaseModel):
-    name: Name = Field(...)
-    email: EmailStr = Field(...)
-
-    class Config:
-        json_schema_extra = {
-            "example": {"name": "Alfred Glump", "email": "glump@rpi.edu"}
-        }
-
-
-class LAFArchiveItems(BaseModel):
-    ids: list[int] = Field(...)
-
-    class Config:
-        json_schema_extra = {"example": {"ids": [1, 2, 3]}}
-
-
-class LostReportRequest(BaseModel):
     type: TypeString = Field(...)
-    name: Name = Field(...)
-    email: EmailStr = Field(...)
+    location: Location = Field(...)
     description: Description = Field(...)
     date: Annotated[
         str,
         Field(...),
         BeforeValidator(parse_date_flexible),
     ]
-    location: Location = Field(...)
 
-    class Config:
-        json_schema_extra = {
+
+class LAFFoundItem(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"name": "Alfred Glump", "email": "glump@rpi.edu"}
+        }
+    )
+
+    name: Name = Field(...)
+    email: EmailStr = Field(...)
+
+
+class LAFArchiveItems(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"example": {"ids": [1, 2, 3]}})
+
+    ids: list[int] = Field(...)
+
+
+class LostReportRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "type": "Apparel",
                 "name": "Alfred Glump",
@@ -152,20 +143,32 @@ class LostReportRequest(BaseModel):
                 "location": "Union,DCC",
             }
         }
+    )
+
+    type: TypeString = Field(...)
+    name: Name = Field(...)
+    email: EmailStr = Field(...)
+    description: Description = Field(...)
+    date: Annotated[
+        str,
+        Field(...),
+        BeforeValidator(parse_date_flexible),
+    ]
+    location: Location = Field(...)
 
 
 class LAFLocation(BaseModel):
-    location: LocationSingle = Field(...)
+    model_config = ConfigDict(json_schema_extra={"example": {"location": "ECAV"}})
 
-    class Config:
-        json_schema_extra = {"example": {"location": "ECAV"}}
+    location: LocationSingle = Field(...)
 
 
 class LAFType(BaseModel):
-    type: TypeString = Field(...)
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"type": "Washing Machines"}}
+    )
 
-    class Config:
-        json_schema_extra = {"example": {"type": "Washing Machines"}}
+    type: TypeString = Field(...)
 
 
 class DateFilter(str, Enum):

@@ -1,6 +1,6 @@
 from typing import Annotated, Literal, Optional, TypedDict, Union
 
-from pydantic import BaseModel, BeforeValidator, EmailStr, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, EmailStr, Field
 
 from server.helpers.sanitize import sanitize_text
 from server.models.common import Name, ResponseModel
@@ -15,6 +15,17 @@ LoanerTechDescription = Annotated[str, BeforeValidator(validate_loanertech_descr
 
 
 class LoanerTechCheckout(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "ids": [1, 4],
+                "phone_number": "518-276-6516",
+                "email": "glump@rpi.edu",
+                "name": "Alfred Glump",
+            }
+        }
+    )
+
     ids: list[int] = Field(...)
     phone_number: str = Field(
         ...,
@@ -24,37 +35,29 @@ class LoanerTechCheckout(BaseModel):
     email: Optional[EmailStr] = Field(...)
     name: Name = Field(...)
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "ids": [1, 4],
-                "phone_number": "518-276-6516",
-                "email": "glump@rpi.edu",
-                "name": "Alfred Glump",
-            }
-        }
-
 
 class LoanerTechCheckin(BaseModel):
-    ids: list[int] = Field(...)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "ids": [1, 4],
             }
         }
+    )
+
+    ids: list[int] = Field(...)
 
 
 class LoanerTechRequest(BaseModel):
-    description: LoanerTechDescription = Field(...)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "description": "Apple 96 watt USB C charger",
             }
         }
+    )
+
+    description: LoanerTechDescription = Field(...)
 
 
 class LoanerTechItemUnauthorized(TypedDict):

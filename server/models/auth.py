@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 
 def validate_uuid_code(v: str) -> str:
@@ -20,11 +20,12 @@ UUIDCode = Annotated[str, BeforeValidator(validate_uuid_code)]
 
 
 class TokenRequest(BaseModel):
-    code: UUIDCode = Field(...)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "code": "550e8400-e29b-41d4-a716-446655440000",
             }
         }
+    )
+
+    code: UUIDCode = Field(...)
