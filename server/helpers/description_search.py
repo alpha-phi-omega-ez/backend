@@ -61,6 +61,10 @@ TOKEN_TO_CANONICAL: dict[str, str] = {
     synonym: sorted(group)[0] for group in SYNONYM_GROUPS for synonym in group
 }
 
+TOKEN_TO_SYNONYM_SET: dict[str, frozenset[str]] = {
+    term: frozenset(group) for group in SYNONYM_GROUPS for term in group
+}
+
 
 def normalize_search_text(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s]", " ", text.lower())).strip()
@@ -145,6 +149,14 @@ def rank_by_description(
     return [item for _, item in ranked_items[:DESCRIPTION_SEARCH_RESULT_LIMIT]]
 
 
+def _prefilter_regex_alternates(normalized_query: str) -> list[str]:
+    raw_tokens = [t for t in normalized_query.split() if t]
+    expanded: set[str] = set()
+    for t in raw_tokens:
+        expanded.update(TOKEN_TO_SYNONYM_SET.get(t, frozenset({t})))
+    return sorted(expanded)
+
+
 def build_description_prefilter(
     description_query: str,
 ) -> dict[str, dict[str, str]] | None:
@@ -152,11 +164,11 @@ def build_description_prefilter(
     if not normalized_query:
         return None
 
-    tokens = tokenize_search_text(normalized_query)
-    if not tokens:
+    alternates = _prefilter_regex_alternates(normalized_query)
+    if not alternates:
         return None
 
-    token_pattern = "|".join(sorted({re.escape(token) for token in tokens}))
+    token_pattern = "|".join(re.escape(token) for token in alternates)
     return {"description": {"$regex": token_pattern, "$options": "i"}}
 
 

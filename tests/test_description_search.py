@@ -1,6 +1,7 @@
 """Unit tests for server.helpers.description_search."""
 
 import asyncio
+import re
 
 import pytest
 
@@ -130,6 +131,17 @@ def test_build_description_prefilter_uses_token_regex() -> None:
     assert "$regex" in prefilter["description"]
     assert "airpods" in prefilter["description"]["$regex"]
     assert prefilter["description"]["$options"] == "i"
+
+
+def test_build_description_prefilter_hat_matches_raw_and_synonym_descriptions() -> None:
+    """Prefilter must not map hat->beanie only; raw descriptions may say 'hat'."""
+    prefilter = build_description_prefilter("hat")
+    assert prefilter is not None
+    pattern = prefilter["description"]["$regex"]
+    assert "hat" in pattern
+    compiled = re.compile(pattern, re.IGNORECASE)
+    assert compiled.search("red wool hat")
+    assert compiled.search("black beanie")
 
 
 def test_rank_by_description_orders_by_relevance_then_date() -> None:
