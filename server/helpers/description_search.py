@@ -123,13 +123,14 @@ def rank_by_description(
     description_query: str,
     description_field: str = "description",
 ) -> list[dict[str, Any]]:
-    if not description_query:
+    normalized_query = normalize_search_text(description_query)
+    if not normalized_query:
         return items
 
     ranked_items: list[tuple[float, dict[str, Any]]] = []
     for item in items:
         score = description_similarity_score(
-            description_query, item.get(description_field, "")
+            normalized_query, item.get(description_field, "")
         )
         if score >= DESCRIPTION_MATCH_THRESHOLD:
             ranked_items.append((score, item))
@@ -142,6 +143,21 @@ def rank_by_description(
         reverse=True,
     )
     return [item for _, item in ranked_items[:DESCRIPTION_SEARCH_RESULT_LIMIT]]
+
+
+def build_description_prefilter(
+    description_query: str,
+) -> dict[str, dict[str, str]] | None:
+    normalized_query = normalize_search_text(description_query)
+    if not normalized_query:
+        return None
+
+    tokens = tokenize_search_text(normalized_query)
+    if not tokens:
+        return None
+
+    token_pattern = "|".join(sorted({re.escape(token) for token in tokens}))
+    return {"description": {"$regex": token_pattern, "$options": "i"}}
 
 
 async def rank_by_description_async(

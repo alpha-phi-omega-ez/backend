@@ -6,6 +6,7 @@ import pytest
 
 from server.helpers.description_search import (
     DESCRIPTION_SEARCH_RESULT_LIMIT,
+    build_description_prefilter,
     canonicalize_token,
     description_similarity_score,
     normalize_search_text,
@@ -23,35 +24,70 @@ from server.helpers.description_search import (
         ("", ""),
         ("UPPER", "upper"),
     ],
+    ids=[
+        "normalizes_whitespace_and_strips_punctuation",
+        "empty_string",
+        "lowercases_uppercase",
+    ],
 )
 def test_normalize_search_text(raw: str, expected: str) -> None:
     assert normalize_search_text(raw) == expected
 
 
-def test_canonicalize_token_maps_synonyms() -> None:
-    # Canonical is lexicographically first in the hat group
-    assert canonicalize_token("beanie") == canonicalize_token("hat")
-    assert canonicalize_token("airpods") == canonicalize_token("earbuds")
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        ("beanie", "hat"),
+        ("airpods", "earbuds"),
+    ],
+    ids=[
+        "hat_synonym_group_maps_to_same_canonical",
+        "earbuds_synonym_group_maps_to_same_canonical",
+    ],
+)
+def test_canonicalize_token_maps_synonyms(a: str, b: str) -> None:
+    assert canonicalize_token(a) == canonicalize_token(b)
 
 
-def test_tokenize_search_text_empty() -> None:
-    assert tokenize_search_text("") == []
+@pytest.mark.parametrize(
+    "text,expected_tokens",
+    [
+        pytest.param("", [], id="empty_input_yields_no_tokens"),
+        pytest.param(
+            "black beanie",
+            ["black", "beanie"],
+            id="tokens_use_canonical_synonym_forms",
+        ),
+    ],
+)
+def test_tokenize_search_text(text: str, expected_tokens: list[str]) -> None:
+    assert tokenize_search_text(text) == expected_tokens
 
 
-def test_tokenize_search_text_applies_synonyms() -> None:
-    tokens = tokenize_search_text("black beanie")
-    assert "black" in tokens
-    assert canonicalize_token("beanie") in tokens
+@pytest.mark.parametrize(
+    "query_tokens,text_tokens",
+    [
+        ([], ["a"]),
+        (["a"], []),
+    ],
+    ids=["empty_query_tokens_scores_zero", "empty_text_tokens_scores_zero"],
+)
+def test_token_match_score_zero_for_empty(
+    query_tokens: list[str], text_tokens: list[str]
+) -> None:
+    assert token_match_score(query_tokens, text_tokens) == 0.0
 
 
-def test_token_match_score_zero_for_empty() -> None:
-    assert token_match_score([], ["a"]) == 0.0
-    assert token_match_score(["a"], []) == 0.0
-
-
-def test_description_similarity_score_empty() -> None:
-    assert description_similarity_score("", "hello") == 0.0
-    assert description_similarity_score("hello", "") == 0.0
+@pytest.mark.parametrize(
+    "query,text",
+    [
+        ("", "hello"),
+        ("hello", ""),
+    ],
+    ids=["empty_query_returns_zero", "empty_text_returns_zero"],
+)
+def test_description_similarity_score_empty(query: str, text: str) -> None:
+    assert description_similarity_score(query, text) == 0.0
 
 
 def test_description_similarity_score_related_text_higher() -> None:
@@ -65,9 +101,35 @@ def test_description_similarity_score_typo_still_matches() -> None:
     assert description_similarity_score("airpods", "Apple airpords white case") >= 55
 
 
-def test_rank_by_description_empty_query_returns_input() -> None:
+@pytest.mark.parametrize(
+    "description_query",
+    [
+        pytest.param("", id="empty_query_returns_original_list"),
+        pytest.param("   ", id="whitespace_only_query_returns_original_list"),
+    ],
+)
+def test_rank_by_description_blank_query_returns_input(description_query: str) -> None:
     items = [{"description": "a", "date": "2024-01-01"}]
-    assert rank_by_description(items, "") is items
+    assert rank_by_description(items, description_query) is items
+
+
+@pytest.mark.parametrize(
+    "description_query",
+    [
+        pytest.param("", id="empty_query_yields_no_prefilter"),
+        pytest.param("   ", id="whitespace_only_yields_no_prefilter"),
+    ],
+)
+def test_build_description_prefilter_blank_query(description_query: str) -> None:
+    assert build_description_prefilter(description_query) is None
+
+
+def test_build_description_prefilter_uses_token_regex() -> None:
+    prefilter = build_description_prefilter("Apple AirPods case")
+    assert prefilter is not None
+    assert "$regex" in prefilter["description"]
+    assert "airpods" in prefilter["description"]["$regex"]
+    assert prefilter["description"]["$options"] == "i"
 
 
 def test_rank_by_description_orders_by_relevance_then_date() -> None:

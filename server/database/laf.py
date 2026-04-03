@@ -18,6 +18,8 @@ from server.helpers.db import (
 from server.helpers.description_search import (
     DESCRIPTION_SEARCH_CANDIDATE_LIMIT,
     DESCRIPTION_SEARCH_RESULT_LIMIT,
+    build_description_prefilter,
+    normalize_search_text,
     rank_by_description_async,
 )
 from server.helpers.sanitize import is_valid_object_id, reject_mongo_operators
@@ -259,7 +261,7 @@ async def retrieve_laf_items(
 ) -> list:
     laf_items_collection = request.app.state.mongo_database.get_collection("laf_items")
     query: dict[str, Union[bool, dict, ObjectId, str, int]] = {"archived": archived}
-    description_query = (laf_query_data.get("description") or "").strip()
+    description_query = normalize_search_text(laf_query_data.get("description") or "")
     if laf_query_data["id"]:
         query["_id"] = int(laf_query_data["id"])
     else:
@@ -270,6 +272,11 @@ async def retrieve_laf_items(
                 query.update(laf_item_query_mapping[k](v, laf_query_data))
             elif k == "type" and v:
                 query["type_id"] = await get_type_id(request, v)
+
+    if description_query and not laf_query_data["id"]:
+        description_prefilter = build_description_prefilter(description_query)
+        if description_prefilter:
+            query.update(description_prefilter)
 
     db_limit = (
         DESCRIPTION_SEARCH_CANDIDATE_LIMIT
@@ -632,7 +639,9 @@ async def retrieve_lost_reports(
         "lost_reports"
     )
     query: dict[str, Union[bool, dict, ObjectId, str]] = {"archived": archived}
-    description_query = (lost_report_query_data.get("description") or "").strip()
+    description_query = normalize_search_text(
+        lost_report_query_data.get("description") or ""
+    )
     async for k, v in async_dict_itr(lost_report_query_data):
         if k == "description":
             continue
@@ -640,6 +649,11 @@ async def retrieve_lost_reports(
             query.update(lost_report_query_mapping[k](v, lost_report_query_data))
         elif k == "type" and v:
             query["type_id"] = await get_type_id(request, v)
+
+    if description_query:
+        description_prefilter = build_description_prefilter(description_query)
+        if description_prefilter:
+            query.update(description_prefilter)
 
     db_limit = (
         DESCRIPTION_SEARCH_CANDIDATE_LIMIT
