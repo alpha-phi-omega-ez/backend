@@ -1,4 +1,5 @@
 from datetime import datetime
+from html import unescape
 from enum import Enum
 from typing import Annotated, TypedDict
 
@@ -49,7 +50,10 @@ def validate_description(v: str) -> str:
 
 def validate_type(v: str) -> str:
     """Validate and sanitize type."""
-    return sanitize_text(v, max_len=TYPE_MAX_LEN)
+    # bleach escapes entities (e.g. "&" -> "&amp;"), but type matching in the
+    # database is exact. Unescape after sanitization so incoming filters and
+    # writes use the same canonical text representation.
+    return unescape(sanitize_text(v, max_len=TYPE_MAX_LEN))
 
 
 def validate_location_single(v: str) -> str:

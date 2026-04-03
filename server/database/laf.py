@@ -2,6 +2,7 @@ import logging
 import re
 from asyncio import gather
 from datetime import datetime
+from html import unescape
 from typing import Union
 
 from aiocache import cached
@@ -85,11 +86,24 @@ async def laf_db_setup(app: FastAPI) -> None:
 async def get_type_id(request: Request, type_in: str) -> ObjectId:
     laf_types_collection = request.app.state.mongo_database.get_collection("laf_types")
     laf_type = await laf_types_collection.find_one({"type": type_in})
-    if not laf_type:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="LAF Type not found"
-        )
-    return laf_type["_id"]
+    if laf_type:
+        return laf_type["_id"]
+
+    # Backward-compatible fallback for historical data where "&" may have been
+    # stored as "&amp;" (or vice versa) due to sanitization.
+    normalized_input = unescape(type_in).casefold()
+    laf_types = await laf_types_collection.find({}).to_list(length=None)
+    for candidate in laf_types:
+        candidate_type = candidate.get("type")
+        if (
+            isinstance(candidate_type, str)
+            and unescape(candidate_type).casefold() == normalized_input
+        ):
+            return candidate["_id"]
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST, detail="LAF Type not found"
+    )
 
 
 # Cache for 1 day
@@ -101,6 +115,8 @@ async def get_type_from_id(request: Request, id: ObjectId) -> dict:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="LAF Type not found"
         )
+    if isinstance(laf_type.get("type"), str):
+        laf_type["type"] = unescape(laf_type["type"])
     return laf_type
 
 
@@ -682,7 +698,12 @@ async def retrieve_lost_reports(
 async def retrieve_laf_types(request: Request) -> list[str]:
     laf_types_collection = request.app.state.mongo_database.get_collection("laf_types")
     laf_types = await laf_types_collection.find({"view": True}).to_list(length=None)
-    return [laf_type["type"] for laf_type in laf_types]
+    return [
+        unescape(laf_type["type"])
+        if isinstance(laf_type.get("type"), str)
+        else laf_type["type"]
+        for laf_type in laf_types
+    ]
 
 
 async def add_laf_type(request: Request, laf_type: str) -> bool:
