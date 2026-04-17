@@ -1,6 +1,6 @@
 from datetime import datetime
-from html import unescape
 from enum import Enum
+from html import unescape
 from typing import Annotated, TypedDict
 
 from pydantic import (

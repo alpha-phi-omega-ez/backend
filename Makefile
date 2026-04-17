@@ -4,6 +4,9 @@ init:
 develop:
 	uv run fastapi dev --port 9000
 
+test:
+	uv run python -m pytest .
+
 start_db:
 	mongod --dbpath db/data --logpath db/logs/mongodb.log
 

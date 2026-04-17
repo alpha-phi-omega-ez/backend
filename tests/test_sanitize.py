@@ -1,7 +1,9 @@
 import pytest
 
 from server.helpers.sanitize import (
+    _reject_key,
     is_valid_object_id,
+    normalize_ws,
     reject_mongo_operators,
     sanitize_text,
     strip_tags,
@@ -15,6 +17,35 @@ def test_strip_tags_removes_html_and_scripts():
 
 def test_strip_tags_returns_empty_string_for_none():
     assert strip_tags(None) == ""
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        (None, ""),
+        ("", ""),
+        ("  a \n\t b  ", "a b"),
+        ("already clean", "already clean"),
+    ],
+    ids=["none", "empty", "collapse_whitespace", "unchanged"],
+)
+def test_normalize_ws(raw, expected):
+    assert normalize_ws(raw) == expected
+
+
+def test_reject_key_allows_non_string_keys():
+    _reject_key(1)
+    _reject_key(None)
+
+
+@pytest.mark.parametrize(
+    "bad_key",
+    ["$gt", "field.name", "$where"],
+    ids=["dollar_prefix", "dotted", "dollar_where"],
+)
+def test_reject_key_blocks_string_operators(bad_key):
+    with pytest.raises(ValueError, match="MongoDB operator"):
+        _reject_key(bad_key)
 
 
 @pytest.mark.parametrize(
