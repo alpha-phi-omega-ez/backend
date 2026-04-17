@@ -4,6 +4,7 @@ import asyncio
 import re
 
 import pytest
+from rapidfuzz import fuzz
 
 from server.helpers.description_search import (
     DESCRIPTION_SEARCH_RESULT_LIMIT,
@@ -82,8 +83,22 @@ def test_token_match_score_zero_for_empty(
 
 def test_token_match_score_averages_best_ratios() -> None:
     """Single query token: score equals best fuzzy ratio against text tokens."""
-    score = token_match_score(["cat"], ["bat", "car"])
-    assert 0.0 < score <= 100.0
+    text_tokens = ["bat", "car"]
+    expected = max(fuzz.ratio("cat", token) for token in text_tokens)
+    score = token_match_score(["cat"], text_tokens)
+    assert score == pytest.approx(expected)
+
+
+def test_token_match_score_averages_across_multiple_query_tokens() -> None:
+    """Multiple query tokens: score is the average of each token's best fuzzy match."""
+    query_tokens = ["cat", "dog"]
+    text_tokens = ["bat", "dig", "car"]
+    expected = sum(
+        max(fuzz.ratio(query_token, text_token) for text_token in text_tokens)
+        for query_token in query_tokens
+    ) / len(query_tokens)
+    score = token_match_score(query_tokens, text_tokens)
+    assert score == pytest.approx(expected)
 
 
 def test_prefilter_regex_alternates_expands_synonyms_sorted_deduped() -> None:
