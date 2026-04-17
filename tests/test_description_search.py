@@ -7,6 +7,7 @@ import pytest
 
 from server.helpers.description_search import (
     DESCRIPTION_SEARCH_RESULT_LIMIT,
+    _prefilter_regex_alternates,
     build_description_prefilter,
     canonicalize_token,
     description_similarity_score,
@@ -77,6 +78,25 @@ def test_token_match_score_zero_for_empty(
     query_tokens: list[str], text_tokens: list[str]
 ) -> None:
     assert token_match_score(query_tokens, text_tokens) == 0.0
+
+
+def test_token_match_score_averages_best_ratios() -> None:
+    """Single query token: score equals best fuzzy ratio against text tokens."""
+    score = token_match_score(["cat"], ["bat", "car"])
+    assert 0.0 < score <= 100.0
+
+
+def test_prefilter_regex_alternates_expands_synonyms_sorted_deduped() -> None:
+    """'hat' expands to synonym set; result sorted unique tokens."""
+    alts = _prefilter_regex_alternates("hat")
+    assert alts == sorted(set(alts))
+    assert "hat" in alts
+    assert "beanie" in alts
+
+
+def test_prefilter_regex_alternates_unknown_token_only_self() -> None:
+    alts = _prefilter_regex_alternates("xyzzy123")
+    assert alts == ["xyzzy123"]
 
 
 @pytest.mark.parametrize(
