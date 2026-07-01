@@ -7,16 +7,16 @@ requires-python = ">=3.13"
 dependencies = [
     "aiocache>=0.12.3",
     "rapidfuzz>=3.14.5",
-    "fastapi-sso>=0.17.0",
-    "fastapi[standard]>=0.136.3",
+    "fastapi-sso>=0.21.1",
+    "fastapi[standard]>=0.139.0",
     "bleach>=6.4.0",
     "pydantic-settings>=2.14.2",
     "pyjwt>=2.13.0",
     "pymongo>=4.17.0",
-    "ruff>=0.15.16",
-    "sentry-sdk[fastapi]>=2.62.0",
-    "valkey-glide>=2.4.1",
-    "pytest>=9.0.3",
+    "ruff>=0.15.20",
+    "sentry-sdk[fastapi]>=2.64.0",
+    "valkey-glide>=2.4.2",
+    "pytest>=9.1.1",
     "pytest-xdist>=3.6.0",
 ]
 
