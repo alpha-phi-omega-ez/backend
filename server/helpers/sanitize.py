@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 import bleach
 
 _OBJECT_ID_RE = re.compile(r"^[a-fA-F0-9]{24}$")
 _WHITESPACE_RE = re.compile(r"\s+")
+_UNSAFE_REDIRECT_CHARS_RE = re.compile(r"[\x00-\x1f\\]")
 
 
 def strip_tags(text: str | None) -> str:
@@ -32,6 +34,29 @@ def is_valid_object_id(value: str) -> bool:
     if not isinstance(value, str):
         return False
     return bool(_OBJECT_ID_RE.fullmatch(value))
+
+
+def sanitize_redirect_path(redirect: str | None, default: str = "/") -> str:
+    """Return a same-app relative path, or *default* if the value is unsafe.
+
+    Allows only paths that start with a single ``/`` (not ``//``). Rejects
+    absolute URLs, protocol-relative URLs, backslashes, and control characters
+    so post-login navigation cannot leave the frontend origin.
+    """
+    if not isinstance(redirect, str):
+        return default
+
+    path = redirect.strip()
+    if not path.startswith("/") or path.startswith("//"):
+        return default
+    if _UNSAFE_REDIRECT_CHARS_RE.search(path):
+        return default
+
+    parsed = urlparse(path)
+    if parsed.scheme or parsed.netloc:
+        return default
+
+    return path
 
 
 def _reject_key(key: Any) -> None:

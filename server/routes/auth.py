@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Annotated, Tuple
+from urllib.parse import urlencode
 
 from fastapi import (
     APIRouter,
@@ -28,6 +29,7 @@ from server.helpers.auth import (
     create_access_token,
     simple_auth_check,
 )
+from server.helpers.sanitize import sanitize_redirect_path
 from server.models.auth import (
     AuthCheckResponse,
     LogoutResponse,
@@ -58,13 +60,19 @@ _SET_COOKIE_HEADER = {
 }
 
 
+def _frontend_login_callback_url(code: str, redirect: str) -> str:
+    safe_redirect = sanitize_redirect_path(redirect)
+    query = urlencode({"code": code, "redirect": safe_redirect})
+    return f"{settings.FRONTEND_URL}/login/callback?{query}"
+
+
 @router.get(
     "/login",
     response_description="Initiate login with Google url",
     response_class=RedirectResponse,
     responses={
         302: {
-            "description": "Redirect to Google OAuth (or frontend callback in testing)",
+            "description": "Redirect to Google OAuth",
             "headers": _REDIRECT_HEADERS,
         }
     },
@@ -77,16 +85,16 @@ async def google_login(
         description="Frontend path to return to after successful login",
     ),
 ) -> RedirectResponse:
+    safe_redirect = sanitize_redirect_path(redirect)
+
     if settings.TESTING:
         print("TEST LOGIN, this should not be used in production!")
         code = await generate_temporary_code(request, "test@apoez.org")
-        return RedirectResponse(
-            url=f"{settings.FRONTEND_URL}/login/callback?code={code}&redirect={redirect}"
-        )
+        return RedirectResponse(url=_frontend_login_callback_url(code, safe_redirect))
 
     async with google_sso:
         login_stuff = await google_sso.get_login_redirect(
-            params={"redirect": redirect}
+            params={"redirect": safe_redirect}
         )
     return login_stuff
 
@@ -130,9 +138,7 @@ async def google_callback(
         )
 
     code = await generate_temporary_code(request, user.email)
-    return RedirectResponse(
-        url=f"{settings.FRONTEND_URL}/login/callback?code={code}&redirect={redirect}"
-    )
+    return RedirectResponse(url=_frontend_login_callback_url(code, redirect))
 
 
 @router.post(

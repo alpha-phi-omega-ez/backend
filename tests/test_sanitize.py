@@ -5,6 +5,7 @@ from server.helpers.sanitize import (
     is_valid_object_id,
     normalize_ws,
     reject_mongo_operators,
+    sanitize_redirect_path,
     sanitize_text,
     strip_tags,
 )
@@ -154,3 +155,50 @@ def test_reject_mongo_operators_allows_safe(value):
 def test_reject_mongo_operators_blocks_dangerous_keys(bad):
     with pytest.raises(ValueError):
         reject_mongo_operators(bad)
+
+
+@pytest.mark.parametrize(
+    "redirect,expected",
+    [
+        ("/", "/"),
+        ("/dashboard", "/dashboard"),
+        ("/laf/items?tab=open", "/laf/items?tab=open"),
+        ("  /path  ", "/path"),
+        ("", "/"),
+        (None, "/"),
+        ("https://evil.com", "/"),
+        ("http://evil.com/phish", "/"),
+        ("//evil.com", "/"),
+        ("///evil.com", "/"),
+        ("\\\\evil.com", "/"),
+        ("/\\evil.com", "/"),
+        ("javascript:alert(1)", "/"),
+        ("dashboard", "/"),
+        ("/\n/evil", "/"),
+        ("/\r/evil", "/"),
+    ],
+    ids=[
+        "root",
+        "relative_path",
+        "path_with_query",
+        "strips_whitespace",
+        "empty",
+        "none",
+        "https_absolute",
+        "http_absolute",
+        "protocol_relative",
+        "triple_slash",
+        "backslash_protocol_relative",
+        "slash_backslash",
+        "javascript_scheme",
+        "missing_leading_slash",
+        "newline_injection",
+        "cr_injection",
+    ],
+)
+def test_sanitize_redirect_path(redirect, expected):
+    assert sanitize_redirect_path(redirect) == expected
+
+
+def test_sanitize_redirect_path_custom_default():
+    assert sanitize_redirect_path("https://evil.com", default="/home") == "/home"
