@@ -77,3 +77,11 @@ class LoanerTechItem(TypedDict):
 
 class LoanerTechResponse(ResponseModel):
     data: LoanerTechItem
+
+
+class LoanerTechListResponse(ResponseModel):
+    data: list[LoanerTechItem]
+
+
+class LoanerTechUnauthorizedListResponse(ResponseModel):
+    data: list[LoanerTechItemUnauthorized]

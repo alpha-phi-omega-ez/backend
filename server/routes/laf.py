@@ -36,10 +36,11 @@ from server.models.common import (
 )
 from server.models.laf import (
     LOCATION_MAX_LEN,
+    ArchivedLAFItemsResponse,
     DateFilter,
     DateString,
     DescriptionFilter,
-    ExpireLAFItemsReponse,
+    ExpireLAFItemsResponse,
     LAFArchiveItems,
     LAFFoundItem,
     LAFItemRequest,
@@ -175,7 +176,7 @@ async def new_laf_item(
 @router.get(
     "/items/",
     response_description="Filter for LAF items",
-    response_model=LAFItemsResponse,
+    response_model=LAFItemsResponse | ArchivedLAFItemsResponse,
 )
 async def get_laf_items(
     request: Request,
@@ -191,7 +192,7 @@ async def get_laf_items(
     archived: bool = Query(False, description="Archived items"),
     id: Optional[int] = Query(None, description="ID of the item", ge=1),
     auth: dict = Depends(required_auth),
-) -> LAFItemsResponse:
+) -> LAFItemsResponse | ArchivedLAFItemsResponse:
     sanitized_locations = (
         [sanitize_text(x, max_len=LOCATION_MAX_LEN) for x in location]
         if location is not None
@@ -207,13 +208,17 @@ async def get_laf_items(
     }
 
     laf_items = await retrieve_laf_items(request, dict_laf_filters, archived)
+    if archived:
+        return ArchivedLAFItemsResponse(
+            data=laf_items, message="Retrieved LAF items"
+        )
     return LAFItemsResponse(data=laf_items, message="Retrieved LAF items")
 
 
 @router.get(
     "/items/expired/",
     response_description="Filter for LAF items",
-    response_model=ExpireLAFItemsReponse,
+    response_model=ExpireLAFItemsResponse,
 )
 async def get_laf_items_expired(
     request: Request,
@@ -224,7 +229,7 @@ async def get_laf_items_expired(
     expensive: int = Query(365, description="Expensive days to expiration"),
     type: TypeFilter = Query("All", description="Type of the item"),
     auth: dict = Depends(required_auth),
-) -> ExpireLAFItemsReponse:
+) -> ExpireLAFItemsResponse:
     laf_items = await retrieve_expired_laf(
         request,
         water_bottle,
@@ -234,7 +239,9 @@ async def get_laf_items_expired(
         expensive,
         type,
     )
-    return ExpireLAFItemsReponse(data=laf_items, message="Retrieved expired LAF items")
+    return ExpireLAFItemsResponse(
+        data=laf_items, message="Retrieved expired LAF items"
+    )
 
 
 @router.put(

@@ -29,3 +29,16 @@ class TokenRequest(BaseModel):
     )
 
     code: UUIDCode = Field(...)
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
+class LogoutResponse(BaseModel):
+    message: str
+    success: bool
+
+
+class AuthCheckResponse(BaseModel):
+    authenticated: bool

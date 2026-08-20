@@ -230,7 +230,7 @@ class LAFItemsResponse(ResponseModel):
     data: list[LAFItem]
 
 
-class ExpireLAFItemsReponse(ResponseModel):
+class ExpireLAFItemsResponse(ResponseModel):
     data: ExpiredItem
 
 

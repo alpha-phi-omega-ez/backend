@@ -74,6 +74,11 @@ app.include_router(LAFRouter, tags=["laf"], prefix="/laf")
 app.include_router(AuthRouter, tags=["Auth"], prefix="")
 
 
-@app.api_route("/", methods=["GET", "HEAD"], tags=["Root"])
+@app.get("/", tags=["Root"], operation_id="read_root")
 async def read_root() -> dict[str, str]:
+    return {"message": "Welcome to the apoez backend!"}
+
+
+@app.head("/", tags=["Root"], operation_id="read_root_head")
+async def read_root_head() -> dict[str, str]:
     return {"message": "Welcome to the apoez backend!"}
