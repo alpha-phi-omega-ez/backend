@@ -2,7 +2,6 @@ from typing import Tuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Request, status
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
 
 from server.database.loanertech import (
     add_loanertech,
@@ -17,8 +16,10 @@ from server.models.common import BoolResponse
 from server.models.loanertech import (
     LoanerTechCheckin,
     LoanerTechCheckout,
+    LoanerTechListResponse,
     LoanerTechRequest,
     LoanerTechResponse,
+    LoanerTechUnauthorizedListResponse,
 )
 
 router = APIRouter()
@@ -27,20 +28,23 @@ router = APIRouter()
 @router.get(
     "/",
     response_description="LoanerTech list retrieved",
+    response_model=LoanerTechListResponse | LoanerTechUnauthorizedListResponse,
 )
 async def get_loanertechs(
     request: Request,
     auth: Tuple[bool, str, dict | None] = Depends(simple_auth_check),
-) -> JSONResponse:
+) -> LoanerTechListResponse | LoanerTechUnauthorizedListResponse:
     authenticated = auth[0]
 
-    loanertechs = (
-        await retrieve_loanertechs(request)
-        if authenticated
-        else await retrieve_loanertechs_unauthenticated(request)
-    )
-    return JSONResponse(
-        {"data": loanertechs, "message": "LoanerTech data retrieved successfully"}
+    if authenticated:
+        return LoanerTechListResponse(
+            data=await retrieve_loanertechs(request),
+            message="LoanerTech data retrieved successfully",
+        )
+
+    return LoanerTechUnauthorizedListResponse(
+        data=await retrieve_loanertechs_unauthenticated(request),
+        message="LoanerTech data retrieved successfully",
     )
 
 
@@ -61,7 +65,11 @@ async def add_loanertech_data(
     )
 
 
-@router.get("/{id}", response_description="LoanerTech data retrieved")
+@router.get(
+    "/{id}",
+    response_description="LoanerTech data retrieved",
+    response_model=LoanerTechResponse,
+)
 async def get_loanertech_data(
     request: Request, id: int = Path(..., ge=1)
 ) -> LoanerTechResponse:

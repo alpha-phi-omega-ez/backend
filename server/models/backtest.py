@@ -32,5 +32,5 @@ class CoursesResponse(ResponseModel):
     data: list[Course]
 
 
-class BacktestsReponse(ResponseModel):
+class BacktestsResponse(ResponseModel):
     data: list[Backtests]

@@ -6,7 +6,7 @@ from server.database.backtest import (
     retrieve_courses,
 )
 from server.models.backtest import (
-    BacktestsReponse,
+    BacktestsResponse,
     CourseCode,
     CourseId,
     CoursesResponse,
@@ -41,10 +41,10 @@ async def get_courses(request: Request, course_code: CourseCode) -> CoursesRespo
 @router.get(
     "/backtest/{course_id}",
     response_description="Backtests retrieved",
-    response_model=BacktestsReponse,
+    response_model=BacktestsResponse,
 )
-async def get_backtest(request: Request, course_id: CourseId) -> BacktestsReponse:
+async def get_backtest(request: Request, course_id: CourseId) -> BacktestsResponse:
     backtest = await retrieve_backtest(request, course_id)
-    return BacktestsReponse(
+    return BacktestsResponse(
         data=backtest, message="Backtests data retrieved successfully"
     )

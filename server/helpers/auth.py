@@ -1,12 +1,17 @@
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 
 import jwt
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, Request, Security, status
+from fastapi.security import APIKeyCookie
 
 from server.config import settings
 from server.database.valkey import is_token_blacklisted
 
 temp_codes = {}
+
+# Declared so OpenAPI/Swagger document cookie-based auth (Authorize button).
+auth_cookie_scheme = APIKeyCookie(name="authToken", auto_error=False)
 
 
 class BlacklistedTokenException(Exception):
@@ -37,12 +42,15 @@ async def create_access_token(
     return encoded_jwt
 
 
-async def simple_auth_check(request: Request) -> tuple[bool, str, dict | None]:
-    token = request.cookies.get("authToken")
+async def simple_auth_check(
+    request: Request,
+    token: Annotated[str | None, Security(auth_cookie_scheme)] = None,
+) -> tuple[bool, str, dict | None]:
+    auth_token = token if token is not None else request.cookies.get("authToken")
 
-    if token:
+    if auth_token:
         try:
-            payload = await validate_token(request, token)
+            payload = await validate_token(request, auth_token)
             return True, "", payload
         except jwt.ExpiredSignatureError:
             return False, "Token expired", None
@@ -53,8 +61,11 @@ async def simple_auth_check(request: Request) -> tuple[bool, str, dict | None]:
     return False, "No token found", None
 
 
-async def required_auth(request: Request) -> dict:
-    authenticated, message, payload = await simple_auth_check(request)
+async def required_auth(
+    request: Request,
+    token: Annotated[str | None, Security(auth_cookie_scheme)] = None,
+) -> dict:
+    authenticated, message, payload = await simple_auth_check(request, token)
 
     if authenticated and payload:
         return payload
