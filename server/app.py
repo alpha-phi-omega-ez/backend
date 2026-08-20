@@ -2,7 +2,7 @@ import sys
 from contextlib import asynccontextmanager
 
 import sentry_sdk
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from server.config import settings
@@ -80,5 +80,5 @@ async def read_root() -> dict[str, str]:
 
 
 @app.head("/", tags=["Root"], operation_id="read_root_head")
-async def read_root_head() -> dict[str, str]:
-    return {"message": "Welcome to the apoez backend!"}
+async def read_root_head() -> "Response":
+    return Response(status_code=200)
