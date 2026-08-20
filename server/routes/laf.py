@@ -210,7 +210,7 @@ async def get_laf_items(
     laf_items = await retrieve_laf_items(request, dict_laf_filters, archived)
     if archived:
         return ArchivedLAFItemsResponse(
-            data=laf_items, message="Retrieved LAF items"
+            data=laf_items, message="Retrieved Archived LAF items"
         )
     return LAFItemsResponse(data=laf_items, message="Retrieved LAF items")
 
