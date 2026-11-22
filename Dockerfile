@@ -3,7 +3,7 @@ FROM dhi.io/uv:0 AS uv
 FROM ghcr.io/tarampampam/microcheck:1 AS microcheck
 
 # Use the 3.14 official docker hardened python dev image with debian trixie (v13)
-FROM dhi.io/python:3.14-debian13-dev AS builder
+FROM dhi.io/python:3.15-debian13-dev AS builder
 
 # Copy uv binary
 COPY --from=uv /uv /uvx /bin/
@@ -20,7 +20,7 @@ COPY uv.lock pyproject.toml /app/
 RUN uv sync --frozen --no-cache --no-install-project
 
 # Use the 3.14 official docker hardened python image with debian trixie (v13)
-FROM dhi.io/python:3.14-debian13
+FROM dhi.io/python:3.15-debian13
 
 WORKDIR /app
 
