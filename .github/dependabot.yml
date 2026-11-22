@@ -4,6 +4,12 @@
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
+registries:
+  dhi:
+    type: docker-registry
+    url: https://dhi.io
+    username: ${{ secrets.DOCKERHUB_USERNAME }}
+    password: ${{ secrets.DOCKERHUB_TOKEN }}
 updates:
   - package-ecosystem: "uv" # See documentation for possible values
     directory: "/" # Location of package manifests
@@ -31,6 +37,8 @@ updates:
           - "*"
   - package-ecosystem: "docker"
     directory: "/"
+    registries:
+      - dhi
     schedule:
       interval: "cron"
       cronjob: "0 9 20 * *"
