@@ -1,8 +1,12 @@
+# External image stages 
+FROM dhi.io/uv:0 AS uv
+FROM ghcr.io/tarampampam/microcheck:1 AS microcheck
+
 # Use the 3.14 official docker hardened python dev image with debian trixie (v13)
 FROM dhi.io/python:3.14-debian13-dev AS builder
 
 # Copy uv binary
-COPY --from=dhi.io/uv:0 /uv /uvx /bin/
+COPY --from=uv /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1
 
@@ -21,7 +25,7 @@ FROM dhi.io/python:3.14-debian13
 WORKDIR /app
 
 # Add httpcheck binary (+~75KB)
-COPY --from=ghcr.io/tarampampam/microcheck:1 /bin/httpcheck /bin/httpcheck
+COPY --from=microcheck /bin/httpcheck /bin/httpcheck
 
 COPY main.py /app/
 COPY server/ /app/server/
