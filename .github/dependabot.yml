@@ -8,7 +8,9 @@ updates:
   - package-ecosystem: "uv" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
-      interval: "monthly"
+      interval: "cron"
+      cronjob: "0 9 20 * *"
+      timezone: "UTC"
     commit-message:
       prefix: "chore(dep uv)"
     groups:
@@ -18,7 +20,9 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "cron"
+      cronjob: "0 9 20 * *"
+      timezone: "UTC"
     commit-message:
       prefix: "chore(dep GH action)"
     groups:
@@ -28,7 +32,9 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-       interval: "monthly"
+      interval: "cron"
+      cronjob: "0 9 20 * *"
+      timezone: "UTC"
     commit-message:
       prefix: "chore(dep docker)"
     groups:
